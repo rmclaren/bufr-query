@@ -143,19 +143,29 @@ def test_highlevel_add():
     paths = container.get_paths('variables/brightnessTemp')
     container.add('variables/brightnessTemp_new', data, paths)
 
+    str_data = np.array(["hello"]*data.shape[0])
+    container.add('variables/str_data', str_data, container.get_paths('variables/latitude'))
+
     description = bufr.encoders.Description(YAML_PATH)
     description.add_variable(name='ObsValue/new_brightnessTemperature',
                              source='variables/brightnessTemp_new',
                              units='K',
                              longName='New Brightness Temperature')
 
+    description.add_variable(name='ObsValue/str_data',
+                             source='variables/str_data',
+                             units='strs',
+                             longName='Hello Strings')
+
     dataset = next(iter(netcdf.Encoder(description).encode(container, OUTPUT_PATH).values()))
     obs_orig = dataset["ObsValue/brightnessTemperature"][:]
     obs_temp = dataset["ObsValue/new_brightnessTemperature"][:]
+    obs_strs = dataset["ObsValue/str_data"][:]
     dataset.close()
 
     assert np.allclose(obs_temp, obs_orig)
     assert obs_temp.shape == data.shape
+    assert np.all(obs_strs == str_data)
 
 def test_highlevel_append():
     DATA_PATH = 'testdata/gdas.t00z.1bhrs4.tm00.bufr_d'
