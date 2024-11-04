@@ -9,7 +9,7 @@
 ################################################################################
 
 cmake_minimum_required( VERSION 3.14 )
-project( bufr_query VERSION 2.8.0 LANGUAGES CXX Fortran)
+project( bufr_query VERSION 0.0.2 LANGUAGES CXX Fortran)
 
 ## Configuration
 find_package( ecbuild QUIET )
