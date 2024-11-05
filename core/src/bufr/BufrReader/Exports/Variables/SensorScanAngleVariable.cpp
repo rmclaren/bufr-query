@@ -40,7 +40,6 @@ namespace bufr {
         checkKeys(map);
 
         // Get input parameters for sensor scan angle calculation
-
         float start;
         float step;
         if (conf_.has(ConfKeys::ScanStart) && conf_.has(ConfKeys::ScanStep))
@@ -61,20 +60,16 @@ namespace bufr {
         auto& fovnObj = map.at(getExportKey(ConfKeys::FieldOfViewNumber));
 
         // Declare and initialize scanline array
-        // scanline has the same dimension as fovn
         std::vector<float> scanang(fovnObj->size(), DataObject<float>::missingValue());
-        std::vector<int> scanpos(fovnObj->size(), DataObject<int>::missingValue());
 
         // Get field-of-view number
-        std::vector<int> fovn(fovnObj->size(), DataObject<int>::missingValue());
         for (size_t idx = 0; idx < fovnObj->size(); idx++)
         {
-           fovn[idx] = fovnObj->getAsInt(idx);
            auto fieldOfViewNumber = fovnObj->getAsInt(idx);
-           scanang[idx] = start + (step/2) + std::floor(fieldOfViewNumber/4)*step - (stepAdj/2)
+           scanang[idx] = start + static_cast<float>(step/2) +
+                          std::floor(static_cast<float>(fieldOfViewNumber)/4)*step - (stepAdj/2)
                           + static_cast<float>(fieldOfViewNumber % 2) * stepAdj;
         }
-
 
         return DataObjectBuilder::make<float>(scanang,
                                               getExportName(),
