@@ -53,7 +53,12 @@ namespace bufr {
                                       "Check your configuration.");
         }
 
-        std::string sensor = conf_.getString(ConfKeys::Sensor);
+        std::string sensor;
+        if (conf_.has(ConfKeys::Sensor))
+        {
+          sensor = conf_.getString(ConfKeys::Sensor);
+        }
+
         float stepAdj = conf_.getFloat(ConfKeys::ScanStepAdjust);
 
         // Read the variables from the map
