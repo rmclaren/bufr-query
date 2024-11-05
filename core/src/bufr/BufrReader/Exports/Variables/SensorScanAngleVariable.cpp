@@ -40,20 +40,9 @@ namespace bufr {
         checkKeys(map);
 
         // Get input parameters for sensor scan angle calculation
-        std::string sensor;
-        if (conf_.has(ConfKeys::Sensor) )
-        {
-             sensor = conf_.getString(ConfKeys::Sensor);
-        }
-        else
-        {
-            throw eckit::BadParameter("Missing required parameters: sensor. "
-                                      "Check your configuration.");
-        }
 
         float start;
         float step;
-        float stepAdj;
         if (conf_.has(ConfKeys::ScanStart) && conf_.has(ConfKeys::ScanStep))
         {
              start = conf_.getFloat(ConfKeys::ScanStart);
@@ -65,14 +54,10 @@ namespace bufr {
                                       "Check your configuration.");
         }
 
-        if (conf_.has(ConfKeys::ScanStepAdjust) && sensor == "iasi" )
-        {
-             sensor = conf_.getString(ConfKeys::Sensor);
-             stepAdj = conf_.getFloat(ConfKeys::ScanStepAdjust);
-        }
+        std::string sensor = conf_.getString(ConfKeys::Sensor);
+        float stepAdj = conf_.getFloat(ConfKeys::ScanStepAdjust);
 
         // Read the variables from the map
-
         auto& fovnObj = map.at(getExportKey(ConfKeys::FieldOfViewNumber));
 
         // Declare and initialize scanline array
@@ -85,8 +70,9 @@ namespace bufr {
         for (size_t idx = 0; idx < fovnObj->size(); idx++)
         {
            fovn[idx] = fovnObj->getAsInt(idx);
-	   auto fieldOfViewNumber = fovnObj->getAsInt(idx);
-	   scanang[idx] = -start + (step/2) + std::floor(fieldOfViewNumber/4)*step - (stepAdj/2) + (fieldOfViewNumber % 2)*stepAdj;
+           auto fieldOfViewNumber = fovnObj->getAsInt(idx);
+           scanang[idx] = start + (step/2) + std::floor(fieldOfViewNumber/4)*step - (stepAdj/2)
+                          + static_cast<float>(fieldOfViewNumber % 2) * stepAdj;
         }
 
 
