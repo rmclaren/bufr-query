@@ -7,9 +7,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include "eckit/exception/Exceptions.h"
+
 #include "bufr/DataObject.h"
 #include "../../../DataObjectBuilder.h"
-#include "eckit/exception/Exceptions.h"
+#include "../../../ObjectFactory.h"
 
 namespace
 {
@@ -27,6 +29,55 @@ namespace
 
 
 namespace bufr {
+
+  namespace details
+  {
+    class ScanAngleComputer
+    {
+    public:
+      ScanAngleComputer(float start, float step, float stepAdj = 0) :
+        start_(start),
+        step_(step),
+        stepAdj_(stepAdj) {}
+
+      virtual ~ScanAngleComputer() = default;
+
+      virtual float compute(const int fieldOfViewNumber) = 0;
+
+    protected:
+      float start_;
+      float step_;
+      float stepAdj_;
+    };
+
+    class StdScanAngleComputer : public ScanAngleComputer
+    {
+    public:
+      StdScanAngleComputer(float start, float step, float stepAdj = 0) :
+        ScanAngleComputer(start, step, stepAdj) {}
+
+      float compute(const int fieldOfViewNumber) override
+      {
+        return start_ + static_cast<float>(step_ / 2) +
+               std::floor(static_cast<float>(fieldOfViewNumber) / 4) * step_;
+      }
+    };
+
+    class IasiScanAngleComputer : public ScanAngleComputer
+    {
+    public:
+      IasiScanAngleComputer(float start, float step, float stepAdj = 0) :
+        ScanAngleComputer(start, step, stepAdj) {}
+
+      float compute(const int fieldOfViewNumber) override
+      {
+        return start_ + static_cast<float>(step_ / 2) +
+               std::floor(static_cast<float>(fieldOfViewNumber) / 4) * step_ - (stepAdj_ / 2)
+               + static_cast<float>(fieldOfViewNumber % 2) * stepAdj_;
+      }
+    };
+  }  // namespace details
+
     SensorScanAngleVariable::SensorScanAngleVariable(const std::string& exportName,
                                                      const std::string& groupByField,
                                                      const eckit::LocalConfiguration &conf) :
@@ -37,6 +88,15 @@ namespace bufr {
 
     std::shared_ptr<DataObjectBase> SensorScanAngleVariable::exportData(const BufrDataMap& map)
     {
+        typedef ObjectFactory<details::ScanAngleComputer,
+          float/*start*/,
+          float /*step*/,
+          float /*step adjust*/> ScanAngleComputerFactory;
+
+        ScanAngleComputerFactory scanAngleComputerFactory;
+        scanAngleComputerFactory.registerObject<details::StdScanAngleComputer>("");
+        scanAngleComputerFactory.registerObject<details::IasiScanAngleComputer>("iasi");
+
         checkKeys(map);
 
         // Get input parameters for sensor scan angle calculation
@@ -59,7 +119,11 @@ namespace bufr {
           sensor = conf_.getString(ConfKeys::Sensor);
         }
 
-        float stepAdj = conf_.getFloat(ConfKeys::ScanStepAdjust);
+        float stepAdj = 0;
+        if (conf_.has(ConfKeys::ScanStepAdjust))
+        {
+          stepAdj = conf_.getFloat(ConfKeys::ScanStepAdjust);
+        }
 
         // Read the variables from the map
         auto& fovnObj = map.at(getExportKey(ConfKeys::FieldOfViewNumber));
@@ -68,12 +132,10 @@ namespace bufr {
         std::vector<float> scanang(fovnObj->size(), DataObject<float>::missingValue());
 
         // Get field-of-view number
+        auto scanAngleComputer = scanAngleComputerFactory.create(sensor, start, step, stepAdj);
         for (size_t idx = 0; idx < fovnObj->size(); idx++)
         {
-           auto fieldOfViewNumber = fovnObj->getAsInt(idx);
-           scanang[idx] = start + static_cast<float>(step/2) +
-                          std::floor(static_cast<float>(fieldOfViewNumber)/4)*step - (stepAdj/2)
-                          + static_cast<float>(fieldOfViewNumber % 2) * stepAdj;
+           scanang[idx] = scanAngleComputer->compute(fovnObj->getAsInt(idx));
         }
 
         return DataObjectBuilder::make<float>(scanang,
