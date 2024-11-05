@@ -58,8 +58,7 @@ namespace bufr {
 
       float compute(const int fieldOfViewNumber) override
       {
-        return start_ + static_cast<float>(step_ / 2) +
-               std::floor(static_cast<float>(fieldOfViewNumber) / 4) * step_;
+        return start_ + static_cast<float>(fieldOfViewNumber) * step_;
       }
     };
 
@@ -89,7 +88,7 @@ namespace bufr {
     std::shared_ptr<DataObjectBase> SensorScanAngleVariable::exportData(const BufrDataMap& map)
     {
         typedef ObjectFactory<details::ScanAngleComputer,
-          float/*start*/,
+          float /*start*/,
           float /*step*/,
           float /*step adjust*/> ScanAngleComputerFactory;
 
