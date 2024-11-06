@@ -11,14 +11,14 @@ namespace bufr {
     NcepDataProvider::NcepDataProvider(const std::string& filePath) :
       DataProvider(filePath)
     {
+        isetprm_f(strdup("MAXSS"), 250000);
+        isetprm_f(strdup("MXMSGL"), 2500000 );
     }
 
     void NcepDataProvider::open()
     {
         open_f(FileUnit, filePath_.c_str());
         openbf_f(FileUnit, "IN", FileUnit);
-        isetprm_f(strdup("MAXSS"), 250000);
-        isetprm_f(strdup("MXMSGL"), 2500000 );
 
         isOpen_ = true;
     }
