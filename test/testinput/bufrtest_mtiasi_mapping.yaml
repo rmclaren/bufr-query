@@ -57,9 +57,6 @@ bufr:
     sensorViewAngle:
       sensorScanAngle:
         fieldOfViewNumber: "*/FOVN"
-        scanStart: -48.330
-        scanStep: 3.334
-        scanStepAdjust: 1.25
         sensor: iasi
 
     fractionOfClearPixelsInFOV:

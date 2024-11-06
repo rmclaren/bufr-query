@@ -18,9 +18,6 @@ namespace
     namespace ConfKeys
     {
         const char* FieldOfViewNumber = "fieldOfViewNumber";
-        const char* ScanStart = "scanStart";
-        const char* ScanStep = "scanStep";
-        const char* ScanStepAdjust = "scanStepAdjust";
         const char* Sensor = "sensor";
     }  // namespace ConfKeys
 
@@ -34,45 +31,57 @@ namespace bufr {
   {
     class ScanAngleComputer
     {
-    public:
-      ScanAngleComputer(float start, float step, float stepAdj = 0) :
-        start_(start),
-        step_(step),
-        stepAdj_(stepAdj) {}
-
+     public:
+      ScanAngleComputer() = default;
       virtual ~ScanAngleComputer() = default;
 
       virtual float compute(const int fieldOfViewNumber) = 0;
-
-    protected:
-      float start_;
-      float step_;
-      float stepAdj_;
     };
 
     class StdScanAngleComputer : public ScanAngleComputer
     {
-    public:
-      StdScanAngleComputer(float start, float step, float stepAdj = 0) :
-        ScanAngleComputer(start, step, stepAdj) {}
+     public:
+      StdScanAngleComputer(float start, float step) :
+        start_(start),
+        step_(step)
+        {}
 
-      float compute(const int fieldOfViewNumber) override
+      float compute(const int fieldOfViewNumber) final
       {
         return start_ + static_cast<float>(fieldOfViewNumber) * step_;
       }
+
+     private:
+      float start_;
+      float step_;
+    };
+
+    class AmsuaScanAngleComputer : public StdScanAngleComputer
+    {
+     public:
+      AmsuaScanAngleComputer() : StdScanAngleComputer(-48.33, 3.333) {}
+    };
+
+    class AtmsScanAngleComputer : public StdScanAngleComputer
+    {
+     public:
+      AtmsScanAngleComputer() : StdScanAngleComputer(-52.725, 1.110) {}
     };
 
     class IasiScanAngleComputer : public ScanAngleComputer
     {
-    public:
-      IasiScanAngleComputer(float start, float step, float stepAdj = 0) :
-        ScanAngleComputer(start, step, stepAdj) {}
+     public:
+      IasiScanAngleComputer() : ScanAngleComputer() {};
 
-      float compute(const int fieldOfViewNumber) override
+      float compute(const int fieldOfViewNumber) final
       {
-        return start_ + static_cast<float>(step_ / 2) +
-               std::floor(static_cast<float>(fieldOfViewNumber) / 4) * step_ - (stepAdj_ / 2)
-               + static_cast<float>(fieldOfViewNumber % 2) * stepAdj_;
+        static const float Start = 48.33;
+        static const float Step = 3.334;
+        static const float PixelOffset = 1.25;
+
+        return Start + static_cast<float>(Step / 2) +
+               std::floor(static_cast<float>(fieldOfViewNumber) / 4) * Step - (PixelOffset / 2)
+               + static_cast<float>(fieldOfViewNumber % 2) * PixelOffset;
       }
     };
   }  // namespace details
@@ -87,41 +96,24 @@ namespace bufr {
 
     std::shared_ptr<DataObjectBase> SensorScanAngleVariable::exportData(const BufrDataMap& map)
     {
-        typedef ObjectFactory<details::ScanAngleComputer,
-          float /*start*/,
-          float /*step*/,
-          float /*step adjust*/> ScanAngleComputerFactory;
+        typedef ObjectFactory<details::ScanAngleComputer> ScanAngleComputerFactory;
 
         ScanAngleComputerFactory scanAngleComputerFactory;
-        scanAngleComputerFactory.registerObject<details::StdScanAngleComputer>("");
+        scanAngleComputerFactory.registerObject<details::AtmsScanAngleComputer>("atms");
+        scanAngleComputerFactory.registerObject<details::AmsuaScanAngleComputer>("amsua");
         scanAngleComputerFactory.registerObject<details::IasiScanAngleComputer>("iasi");
 
         checkKeys(map);
-
-        // Get input parameters for sensor scan angle calculation
-        float start;
-        float step;
-        if (conf_.has(ConfKeys::ScanStart) && conf_.has(ConfKeys::ScanStep))
-        {
-             start = conf_.getFloat(ConfKeys::ScanStart);
-             step = conf_.getFloat(ConfKeys::ScanStep);
-        }
-        else
-        {
-            throw eckit::BadParameter("Missing required parameters: scan starting angle and step. "
-                                      "Check your configuration.");
-        }
 
         std::string sensor;
         if (conf_.has(ConfKeys::Sensor))
         {
           sensor = conf_.getString(ConfKeys::Sensor);
         }
-
-        float stepAdj = 0;
-        if (conf_.has(ConfKeys::ScanStepAdjust))
+        else
         {
-          stepAdj = conf_.getFloat(ConfKeys::ScanStepAdjust);
+          throw eckit::BadParameter("Missing required parameters: sensor in sensorScanAngle."
+                                    "Check your configuration.");
         }
 
         // Read the variables from the map
@@ -131,7 +123,7 @@ namespace bufr {
         std::vector<float> scanang(fovnObj->size(), DataObject<float>::missingValue());
 
         // Get field-of-view number
-        auto scanAngleComputer = scanAngleComputerFactory.create(sensor, start, step, stepAdj);
+        auto scanAngleComputer = scanAngleComputerFactory.create(sensor);
         for (size_t idx = 0; idx < fovnObj->size(); idx++)
         {
            scanang[idx] = scanAngleComputer->compute(fovnObj->getAsInt(idx));

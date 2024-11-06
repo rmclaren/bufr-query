@@ -43,8 +43,6 @@ bufr:
     sensorScanAngle:
       sensorScanAngle:
         fieldOfViewNumber: "*/FOVN"
-        scanStart: -52.725
-        scanStep: 1.110
         sensor: atms
 
     sensorChannelNumber:
