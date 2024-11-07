@@ -18,10 +18,25 @@ namespace bufr {
                                                      const std::string& groupByFieldName,
                                                      const std::string& overrideType) const
 {
-    // Make sure we have accumulated frames otherwise something is wrong.
+    // Make sure we have accumulated frames.
     if (frames_.size() == 0)
     {
-      throw eckit::BadValue("ResultSet has no data.");
+      auto data = details::ResultData();
+      data.buffer = {};
+      data.dims = {0};
+      data.dimPaths = {Query()};
+
+      auto object = DataObjectBuilder::make(fieldName,
+                                            groupByFieldName,
+                                            TypeInfo(),
+                                            overrideType,
+                                            data.buffer,
+                                            data.dims,
+                                            data.dimPaths);
+
+      std::cout << "WARNING: ResultSet has no data." << std::endl;
+
+      return object;
     }
 
     // Get the metadata for the target
