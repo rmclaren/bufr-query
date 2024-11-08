@@ -226,7 +226,7 @@ namespace bufr {
           }
 
           srcData[queryInfo.name] = resultSet.get(
-            queryInfo.name, queryInfo.groupByField, queryInfo.type);
+            queryInfo.name, queryInfo.groupByField, typeStr);
         }
       }
 

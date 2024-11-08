@@ -73,9 +73,39 @@ namespace bufr {
     std::vector<int> scale(comm.size());
     std::vector<int> reference(comm.size());
 
+
     comm.allGather(typeInfo.bits, bits.begin(), bits.end());
     comm.allGather(typeInfo.scale, scale.begin(), scale.end());
     comm.allGather(typeInfo.reference, reference.begin(), reference.end());
+
+    std::vector<std::string> unit(comm.size());
+    {
+      size_t charsToSend = typeInfo.unit.size();
+
+      size_t charsToReceive = charsToSend;
+      comm.allReduce(charsToReceive, charsToReceive, eckit::mpi::Operation::SUM);
+
+      auto sizeArray = std::vector<int>(comm.size());
+      comm.allGather(static_cast<int>(charsToSend), sizeArray.begin(), sizeArray.end());
+
+      std::vector<char> rcvBuffer(charsToReceive, 0);
+      auto rcvCounts = std::vector<int>(comm.size());
+
+      std::vector<int> displacement(comm.size(), 0);
+      for (size_t i = 1; i < comm.size(); i++)
+      {
+        displacement[i] = displacement[i - 1] + sizeArray[i - 1];
+      }
+
+      comm.allGatherv(typeInfo.unit.begin(), typeInfo.unit.end(), rcvBuffer.begin(),
+                      sizeArray.data(), displacement.data());
+
+      for (size_t i = 1; i < comm.size(); i++)
+      {
+        unit[i] = std::string(rcvBuffer.begin() + displacement[i],
+                              rcvBuffer.begin() + displacement[i] + sizeArray[i]);
+      }
+    }
 
     for (size_t bitIdx=0; bitIdx < bits.size(); ++bitIdx)
     {
@@ -84,6 +114,7 @@ namespace bufr {
         typeInfo.bits = bits[bitIdx];
         typeInfo.scale = scale[bitIdx];
         typeInfo.reference = reference[bitIdx];
+        typeInfo.unit = unit[bitIdx];
         break;
       }
     }
