@@ -16,7 +16,7 @@
 namespace bufr {
   std::shared_ptr<DataObjectBase> ResultSetImpl::get(const std::string& fieldName,
                                                      const std::string& groupByFieldName,
-                                                     const std::string& overrideType) const
+                                                     const std::string& overrideType)
 {
     // Make sure we have accumulated frames.
     if (frames_.size() == 0)
@@ -60,7 +60,41 @@ namespace bufr {
     return object;
   }
 
-  details::TargetMetaDataPtr ResultSetImpl::analyzeTarget(const std::string& name) const {
+  std::string ResultSetImpl::resolveType(const eckit::mpi::Comm& comm,
+                                      const std::string& fieldName)
+  {
+    TypeInfo typeInfo;
+    if (!frames_.empty())
+    {
+      typeInfo = analyzeTarget(fieldName)->typeInfo;
+    }
+
+    std::vector<int> bits(comm.size());
+    std::vector<int> scale(comm.size());
+    std::vector<int> reference(comm.size());
+
+    comm.allGather(typeInfo.bits, bits.begin(), bits.end());
+    comm.allGather(typeInfo.scale, scale.begin(), scale.end());
+    comm.allGather(typeInfo.reference, reference.begin(), reference.end());
+
+    for (size_t bitIdx=0; bitIdx < bits.size(); ++bitIdx)
+    {
+      if (bits[bitIdx] != 0)
+      {
+        typeInfo.bits = bits[bitIdx];
+        typeInfo.scale = scale[bitIdx];
+        typeInfo.reference = reference[bitIdx];
+        break;
+      }
+    }
+
+    return DataObjectBuilder::typeString(typeInfo);
+  }
+
+  details::TargetMetaDataPtr ResultSetImpl::analyzeTarget(const std::string& name)
+  {
+    if (metaData_.find(name) != metaData_.end()) return metaData_[name];
+
     auto metaData       = std::make_shared<details::TargetMetaData>();
     metaData->targetIdx = frames_.front().getTargetIdx(name);
     metaData->missingFrames.resize(frames_.size(), false);
@@ -160,6 +194,8 @@ namespace bufr {
         metaData->filteredDims[dimIdx] = metaData->dims[dimIdx];
       }
     }
+
+    metaData_[name] = metaData;
 
     return metaData;
   }
@@ -365,7 +401,7 @@ namespace bufr {
 
   void ResultSetImpl::applyGroupBy(details::ResultData& resData,
                                const details::TargetMetaDataPtr& targetMetaData,
-                               const std::string& groupByFieldName) const {
+                               const std::string& groupByFieldName) {
     const auto groupByMetaData = analyzeTarget(groupByFieldName);
     validateGroupByField(targetMetaData, groupByMetaData);
 

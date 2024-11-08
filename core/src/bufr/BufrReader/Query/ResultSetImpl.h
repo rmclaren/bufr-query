@@ -73,17 +73,21 @@ namespace details
         std::shared_ptr<DataObjectBase>
         get(const std::string& fieldName,
             const std::string& groupByFieldName = "",
-            const std::string& overrideType = "") const;
+            const std::string& overrideType = "");
+
+        std::string  resolveType(const eckit::mpi::Comm& comm,
+                                 const std::string& fieldName);
 
         friend class QueryRunner;
 
      private:
         Frames frames_;
+        std::unordered_map<std::string, details::TargetMetaDataPtr> metaData_;
 
         /// \brief Computes and returns metadata associated with a target.
         /// \param name The name of the target to get the metadata for.
         /// \return A TargetMetaData object containing the metadata.
-        details::TargetMetaDataPtr analyzeTarget(const std::string& name) const;
+        details::TargetMetaDataPtr analyzeTarget(const std::string& name);
 
         /// \brief Assembles the data fragments for a target into a single ResultData object.
         /// \param targetMetaData The metadata for the target to assemble the data for.
@@ -153,7 +157,7 @@ namespace details
         /// \param groupByFieldName The name of the field to group the data by.
         void applyGroupBy(details::ResultData& resData,
                           const details::TargetMetaDataPtr& targetMetaData,
-                          const std::string& groupByFieldName) const;
+                          const std::string& groupByFieldName);
 
         /// \brief Is the field a string field?
         /// \param fieldName The name of the field.

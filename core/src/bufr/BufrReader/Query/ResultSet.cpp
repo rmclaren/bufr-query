@@ -17,7 +17,13 @@ namespace bufr {
                                                  const std::string& groupByFieldName,
                                                  const std::string& overrideType) const
   {
-        return impl_->get(fieldName, groupByFieldName, overrideType);
+    return impl_->get(fieldName, groupByFieldName, overrideType);
+  }
+
+  std::string ResultSet::resolveType(const eckit::mpi::Comm& comm,
+                                  const std::string& fieldName) const
+  {
+    return impl_->resolveType(comm, fieldName);
   }
 
 }  // namespace bufr

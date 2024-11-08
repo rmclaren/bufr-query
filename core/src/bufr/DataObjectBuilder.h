@@ -70,6 +70,24 @@ namespace bufr {
       return object;
     }
 
+    static std::string typeString(const TypeInfo& info)
+    {
+      std::string typeString;
+      if (info.isString()) {
+        typeString = "string";
+      } else if (info.isInteger()) {
+        if (info.isSigned()) {
+          typeString = info.is64Bit() ? "int64" : "int32";
+        } else {
+          typeString = info.is64Bit() ? "uint64" : "uint32";
+        }
+      } else {
+        typeString = info.is64Bit() ? "double" : "float";
+      }
+
+      return typeString;
+    }
+
   private:
 
     static std::shared_ptr<DataObjectBase> objectByTypeInfo(const TypeInfo& info)

@@ -14,7 +14,11 @@
 #include <utility>
 #include <vector>
 
+#include "eckit/mpi/Comm.h"
+
 #include "DataObject.h"
+#include "DataProvider.h"
+
 
 namespace bufr {
   class ResultSetImpl;
@@ -48,6 +52,9 @@ namespace bufr {
     std::shared_ptr<DataObjectBase> get(const std::string& fieldName,
                                         const std::string& groupByFieldName = "",
                                         const std::string& overrideType     = "") const;
+
+    std::string  resolveType(const eckit::mpi::Comm& comm,
+                             const std::string& fieldName) const;
 
     friend class QueryRunner;
 

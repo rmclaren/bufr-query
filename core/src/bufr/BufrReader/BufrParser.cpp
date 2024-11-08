@@ -219,6 +219,12 @@ namespace bufr {
             continue;
           }
 
+          auto typeStr = queryInfo.type;
+          if (typeStr.empty())
+          {
+            typeStr = resultSet.resolveType(comm, queryInfo.name);
+          }
+
           srcData[queryInfo.name] = resultSet.get(
             queryInfo.name, queryInfo.groupByField, queryInfo.type);
         }
