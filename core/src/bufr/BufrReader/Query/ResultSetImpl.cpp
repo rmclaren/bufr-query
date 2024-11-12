@@ -73,7 +73,6 @@ namespace bufr {
     std::vector<int> scale(comm.size());
     std::vector<int> reference(comm.size());
 
-
     comm.allGather(typeInfo.bits, bits.begin(), bits.end());
     comm.allGather(typeInfo.scale, scale.begin(), scale.end());
     comm.allGather(typeInfo.reference, reference.begin(), reference.end());
@@ -100,7 +99,7 @@ namespace bufr {
       comm.allGatherv(typeInfo.unit.begin(), typeInfo.unit.end(), rcvBuffer.begin(),
                       sizeArray.data(), displacement.data());
 
-      for (size_t i = 1; i < comm.size(); i++)
+      for (size_t i = 0; i < comm.size(); i++)
       {
         unit[i] = std::string(rcvBuffer.begin() + displacement[i],
                               rcvBuffer.begin() + displacement[i] + sizeArray[i]);
