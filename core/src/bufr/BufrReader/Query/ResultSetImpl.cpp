@@ -494,34 +494,6 @@ namespace bufr {
     return target->typeInfo.unit;
   }
 
-  std::shared_ptr<DataObjectBase> ResultSetImpl::makeDataObject(
-    const std::string& fieldName, const std::string& groupByFieldName, const TypeInfo& info,
-    const std::string& overrideType, const Data& data, const std::vector<int>& dims,
-    const std::vector<Query>& dimPaths) const {
-    std::shared_ptr<DataObjectBase> object;
-    if (overrideType.empty()) {
-      object = objectByTypeInfo(info);
-    } else {
-      object = objectByType(overrideType);
-
-      if ((overrideType == "string" && !info.isString())
-          || (overrideType != "string" && info.isString())) {
-        std::ostringstream errMsg;
-        errMsg << "Conversions between numbers and strings are not currently supported. ";
-        errMsg << "See the export definition for \"" << fieldName << "\".";
-        throw eckit::BadParameter(errMsg.str());
-      }
-    }
-
-    object->setData(data);
-    object->setDims(dims);
-    object->setFieldName(fieldName);
-    object->setGroupByFieldName(groupByFieldName);
-    object->setDimPaths(dimPaths);
-
-    return object;
-  }
-
   std::shared_ptr<DataObjectBase> ResultSetImpl::objectByTypeInfo(const TypeInfo& info) const {
     std::shared_ptr<DataObjectBase> object;
 

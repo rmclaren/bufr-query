@@ -67,7 +67,7 @@ namespace bufr {
         bool isInteger() const { return scale <= 0; }
         bool is64Bit() const
         {
-            if (bits == 0) return false;
+            if (isUnknown()) return false;
 
             bool is64Bit;
             if (isInteger() && !isSigned())
@@ -90,6 +90,11 @@ namespace bufr {
         bool isLongString() const
         {
             return isString() && bits > 64;
+        }
+
+        bool isUnknown() const
+        {
+            return (bits == 0);
         }
     };
 

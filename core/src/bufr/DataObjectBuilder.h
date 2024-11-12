@@ -33,7 +33,7 @@ namespace bufr {
       {
         object = objectByType(overrideType);
 
-        if ((overrideType == "string" && !info.isString())
+        if ((overrideType == "string" && (!info.isString() && !info.isUnknown()))
             || (overrideType != "string" && info.isString())) {
           std::ostringstream errMsg;
           errMsg << "Conversions between numbers and strings are not currently supported. ";

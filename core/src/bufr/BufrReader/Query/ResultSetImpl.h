@@ -163,25 +163,6 @@ namespace details
         /// \param fieldName The name of the field.
         std::string unit(const std::string& fieldName) const;
 
-        /// \brief Make an appropriate DataObject for the data considering all the META data
-        /// \param fieldName The name of the field to get the data for.
-        /// \param groupByFieldName The name of the field to group the data by.
-        /// \param info The meta data for the element.
-        /// \param overrideType The name of the override type to convert the data to. Possible
-        /// values are int, uint, int32, uint32, int64, uint64, float, double
-        /// \param data The data
-        /// \param dims The dimensioning information
-        /// \param dimPaths The sub-query path strings for each dimension.
-        /// \return A Result DataObject containing the data.
-        std::shared_ptr<DataObjectBase> makeDataObject(
-                                const std::string& fieldName,
-                                const std::string& groupByFieldName,
-                                const TypeInfo& info,
-                                const std::string& overrideType,
-                                const Data& data,
-                                const std::vector<int>& dims,
-                                const std::vector<Query>& dimPaths) const;
-
         /// \brief Make an appropriate DataObject for data with the TypeInfo
         /// \param info The meta data for the element.
         /// \return A Result DataObject containing the data.
