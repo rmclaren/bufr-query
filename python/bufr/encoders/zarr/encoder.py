@@ -54,20 +54,12 @@ class Encoder:
             if isinstance(data, list):
                 store = root.create_dataset(key, shape=(len(data)), dtype=np.dtype(type(data[0])))
                 store[:] = data
-                print(root[key][:])
-            # elif isinstance(data, str):
-            #     store = root.create_dataset(key, shape=(), dtype=np.dtype(type(data)))
-            #     store[()] = data
-            #     print(root[key])
-            # else:
-            #     store = root.create_dataset(key, shape=(len(data)), dtype=np.dtype(type(data)))
-            #     store[:] = data
-            #     print(root[key][:])
-
-
-            # print(root[key])
-            # store = root.create_dataset(key, shape=data.shape, dtype=data.dtype)
-            # store[:] = data
+            elif isinstance(data, str):
+                store = root.create_dataset(key, shape=(), dtype=f'U{len(data)}')
+                store[()] = data
+            else:
+                store = root.create_dataset(key, shape=(len(data)), dtype=np.dtype(type(data)))
+                store[:] = data
 
     def _add_dimensions(self, container: bufr.DataContainer, var, root:zarr.Group, category:[str]):
         data = container.get(var['source'], category)
