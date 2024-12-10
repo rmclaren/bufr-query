@@ -7,7 +7,6 @@ import zarr
 import numpy as np
 
 import bufr
-from numpy.ma.core import shape
 
 
 # Encoder for Zarr format
@@ -18,7 +17,8 @@ class Encoder:
         else:
             self.description = description
 
-    def encode(self, container: bufr.DataContainer, output_path: str):
+    def encode(self, container: bufr.DataContainer, output_path: str) -> dict[tuple[str],zarr.Group]:
+        result:dict[tuple[str], zarr.Group] = {}
         for category in container.all_sub_categories():
             cat_idx = 0
             substitutions = {}
@@ -33,6 +33,10 @@ class Encoder:
 
             # Close the zarr file
             root.store.close()
+
+            result[tuple(category)] = root
+
+        return result
 
     def _add_datasets(self, root:zarr.Group, container: bufr.DataContainer,
                       dims:dict, category:[str]):
