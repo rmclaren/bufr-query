@@ -97,9 +97,10 @@ class Encoder:
                 else:
                     named_dim_vars[dim_name] = var_name
 
-                dims[var_name].append(f'/{dim_name}')
+                dims[var_name].append(f'/dimensions/{dim_name}')
 
         # # Create the datasets backing the dimensions
+        dim_group = root.create_group('dimensions')
         for dim_name in named_dim_paths.keys():
             dim_paths = container.get_paths(named_dim_vars[dim_name], category)
             if dim_name in named_dim_sources:
@@ -108,22 +109,11 @@ class Encoder:
                 length = container.get(named_dim_vars[dim_name], category).shape[len(dim_paths) - 1]
                 dim_data = np.arange(0, length)
 
-            dim_store = root.create_dataset(dim_name, shape=dim_data.shape, dtype=dim_data.dtype)
+            dim_store = dim_group.create_dataset(dim_name, shape=dim_data.shape, dtype=dim_data.dtype)
             dim_store[:] = dim_data
-
-            root[dim_name] = dim_store
 
         return dims
 
-        # data = container.get(var['source'], category)
-        # dimensions = container.get_paths(var['source'])
-        #
-        # for dim in dimensions:
-        #     dim_data = container.get(dim, category)
-        #     dim_store = root.create_dataset(dim, shape=dim_data.shape, dtype=dim_data.dtype)
-        #     dim_store[:] = dim_data
-        #
-        #     root[dim] = dim_store
 
     def _make_path(self, prototype_path:str, sub_dict:dict[str, str]):
         path_elements = os.path.split(prototype_path)
