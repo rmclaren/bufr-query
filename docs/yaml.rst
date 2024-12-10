@@ -78,8 +78,7 @@ Here is an example:
           upperBound: -68  # optional
           lowerBound: -86.3  # optional
 
-The bufr section contains a section called **exports** which defines the data to read from the BUFR.
-It has the following sub-sections:
+The **bufr** element has the following sub-elements:
 
 * **group_by_variable**: *(optional)* String value that defines the name of the variable to group
   observations by. If this field is missing then observations will not be re-grouped.
