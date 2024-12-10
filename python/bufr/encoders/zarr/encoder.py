@@ -60,32 +60,23 @@ class Encoder:
 
     def _add_dimensions(self, root:zarr.Group, container: bufr.DataContainer, category:[str]):
         dims = {}
-        named_dims = {}
 
-        # class Dim:
-        #     def __init__(self, size:int, paths:[str], source:str=''):
-        #         self.size = size
-        #         self.paths = paths
-        #         self.source = source
+        named_dim_paths = {}
+        named_dim_sources = {}
+        named_dim_vars = {}
 
-
-        named_dims['Location'] = ['*']
-        location_length = container.get(container.list()[0], category).shape[0]
-        store = root.create_dataset('Location', shape=(location_length,), dtype=np.int32)
-        store[:] = np.arange(location_length)
-
+        # Add the location dimension
+        named_dim_paths['Location'] = ['*']
+        named_dim_vars['Location'] = container.list()[0]
 
         # Find the named dimensions
         for conf_dim in self.description.get_dims():
-            named_dims[conf_dim['name']] = conf_dim['paths']
+            named_dim_paths[conf_dim['name']] = conf_dim['paths']
             if conf_dim['source']:
-                print(conf_dim['source'])
-                container.get(conf_dim['source'], category)
-            else:
-                pass
+                named_dim_sources[conf_dim['name']] = conf_dim['source']
 
         def find_named_dim(dim_path:str) -> str:
-            for (key, path_list) in named_dims.items():
+            for (key, path_list) in named_dim_paths.items():
                 for path in path_list:
                     if path == dim_path:
                         return key
@@ -96,20 +87,31 @@ class Encoder:
             if not var_name in dims:
                 dims[var_name] = []
 
-            data = container.get(var_name, category)
             for path in container.get_paths(var_name, category):
                 dim_name = find_named_dim(path)
                 if not dim_name:
                     dim_name = f'dim_{unamed_dim_idx}'
                     unamed_dim_idx += 1
-                    named_dims[dim_name] = [path]
+                    named_dim_paths[dim_name] = [path]
+                    named_dim_vars[dim_name] = var_name
+                else:
+                    named_dim_vars[dim_name] = var_name
 
                 dims[var_name].append(f'/{dim_name}')
 
         # # Create the datasets backing the dimensions
-        # for dim_name in named_dims.keys():
+        for dim_name in named_dim_paths.keys():
+            dim_paths = container.get_paths(named_dim_vars[dim_name], category)
+            if dim_name in named_dim_sources:
+                dim_data = container.get(named_dim_sources[dim_name], category)[0,:]
+            else:
+                length = container.get(named_dim_vars[dim_name], category).shape[len(dim_paths) - 1]
+                dim_data = np.arange(0, length)
 
-        print(f'{dims}')
+            dim_store = root.create_dataset(dim_name, shape=dim_data.shape, dtype=dim_data.dtype)
+            dim_store[:] = dim_data
+
+            root[dim_name] = dim_store
 
         return dims
 

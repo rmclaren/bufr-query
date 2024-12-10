@@ -89,15 +89,23 @@ void setupEncoderDescription(py::module& m)
 
       return pyGlobals;
     })
-   .def("get_dims", [](Description& self) -> std::vector<std::map<std::string, std::string>>
+   .def("get_dims", [](Description& self) -> py::list
      {
-        auto dims = std::vector<std::map<std::string, std::string>>();
+        py::list dims;
         for (const auto& dim : self.getDims())
         {
-          std::map<std::string, std::string> dimMap;
+          py::dict dimMap;
           dimMap["name"] = dim.name;
+
+          py::list paths;
+          for (const auto& path : dim.paths)
+          {
+            paths.append(path.str());
+          }
+
+          dimMap["paths"] = paths;
           dimMap["source"] = dim.source;
-          dims.push_back(dimMap);
+          dims.append(dimMap);
         }
 
         return dims;
