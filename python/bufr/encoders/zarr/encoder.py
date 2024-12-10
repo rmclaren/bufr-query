@@ -104,7 +104,10 @@ class Encoder:
         for dim_name in named_dim_paths.keys():
             dim_paths = container.get_paths(named_dim_vars[dim_name], category)
             if dim_name in named_dim_sources:
-                dim_data = container.get(named_dim_sources[dim_name], category)[0,:]
+                dim_data = container.get(named_dim_sources[dim_name], category)
+
+                # Get the data associated with the last dimension of the source array
+                dim_data = dim_data[(0,) * (dim_data.ndim - 1) + (slice(None),)]
             else:
                 length = container.get(named_dim_vars[dim_name], category).shape[len(dim_paths) - 1]
                 dim_data = np.arange(0, length)
