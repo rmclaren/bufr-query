@@ -42,13 +42,26 @@ class Encoder:
 
             data = container.get(var['source'], category)
 
+            chunks = var['chunks'] if 'chunks' in var else None
+            comp_level = var['compressionLevel'] if 'compressionLevel' in var else 3
+
             # Create the zarr dataset
-            store = root.create_dataset(var['name'], shape=data.shape, dtype=data.dtype)
+            store = root.create_dataset(var['name'],
+                                        shape=data.shape,
+                                        chunks=chunks,
+                                        dtype=data.dtype,
+                                        compression='blosc',
+                                        compression_opts=dict(cname='lz4',
+                                                              clevel=comp_level,
+                                                              shuffle=1))
             store[:] = data
 
             # Add the attributes
             store.attrs['units'] = var['units']
             store.attrs['longName'] = var['longName']
+
+            if 'range' in var:
+                store.attrs['valid_range'] = var['range']
 
             # Associate the dimensions
             store.attrs['_ARRAY_DIMENSIONS'] = dims[var["source"]]
@@ -112,7 +125,9 @@ class Encoder:
                 length = container.get(named_dim_vars[dim_name], category).shape[len(dim_paths) - 1]
                 dim_data = np.arange(0, length)
 
-            dim_store = dim_group.create_dataset(dim_name, shape=dim_data.shape, dtype=dim_data.dtype)
+            dim_store = dim_group.create_dataset(dim_name,
+                                                 shape=dim_data.shape,
+                                                 dtype=dim_data.dtype)
             dim_store[:] = dim_data
 
         return dims

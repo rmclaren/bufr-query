@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# (C) Copyright 2023 NOAA/NWS/NCEP/EMC
+# (C) Copyright 2024 NOAA/NWS/NCEP/EMC
 
 import sys
 import argparse

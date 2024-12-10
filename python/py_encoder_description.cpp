@@ -110,12 +110,12 @@ void setupEncoderDescription(py::module& m)
 
         return dims;
       })
-   .def("get_variables", [](Description& self) -> std::vector<std::map<std::string, std::string>>
+   .def("get_variables", [](Description& self) -> py::list
      {
-        auto variables = std::vector<std::map<std::string, std::string>>();
+        py::list variables;
         for (const auto& var : self.getVariables())
         {
-          std::map<std::string, std::string> varMap;
+          py::dict varMap;
           varMap["name"] = var.name;
           varMap["source"] = var.source;
           varMap["units"] = var.units;
@@ -123,8 +123,11 @@ void setupEncoderDescription(py::module& m)
 
           if (var.range)
           {
-            varMap["range"] = "(" + std::to_string(var.range->start) + ", " + \
-                              std::to_string(var.range->end) + ")";
+            py::list range;
+            range.append(var.range->start);
+            range.append(var.range->end);
+
+            varMap["range"] = range;
           }
 
           if (var.coordinates)
@@ -134,11 +137,21 @@ void setupEncoderDescription(py::module& m)
 
           if (!var.chunks.empty())
           {
-            varMap["chunks"] = "(" + std::to_string(var.chunks[0]) + ", " + \
-                               std::to_string(var.chunks[1]) + ")";
+            py::list chunks;
+            for (const auto& chunk : var.chunks)
+            {
+              chunks.append(chunk);
+            }
+
+            varMap["chunks"] = chunks;
           }
 
-          variables.push_back(varMap);
+          if (var.compressionLevel)
+          {
+            varMap["compressionLevel"] = var.compressionLevel;
+          }
+
+          variables.append(varMap);
         }
 
         return variables;
