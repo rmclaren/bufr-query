@@ -64,6 +64,9 @@ class Encoder:
             store.attrs['units'] = var['units']
             store.attrs['longName'] = var['longName']
 
+            if 'coordinates' in var:
+                store.attrs['coordinates'] = var['coordinates']
+
             if 'range' in var:
                 store.attrs['valid_range'] = var['range']
 
