@@ -3,7 +3,7 @@
 Mapping YAML File
 =================
 
-The YAML mapping tells the BUFR component fields to read from the BUFR file, and how
+The YAML mapping tells which BUFR component fields to read from the BUFR file, and how
 to encode those fields into the output format. To do that it defines 2 sections: `bufr` and
 `encoder`. The content of these sections (described bellow) can be thought of as descriptions for what
 will be read and how it will be encoded.
