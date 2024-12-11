@@ -4,19 +4,20 @@
 
 import sys
 import argparse
+import time
 
 import bufr
 from bufr.encoders import zarr
 
 def run(comm, data_path, mapping_path, output_path):
-    if comm.size() > 1:
-        container = bufr.Parser(data_path, mapping_path).parse(comm)
-        container.gather(comm)
-    else:
-        container = bufr.Parser(data_path, mapping_path).parse()
+    start = time.time()
+
+    container = bufr.Parser(data_path, mapping_path).parse(comm)
+    container.gather(comm)
 
     if comm.rank() == 0:
         zarr.Encoder(mapping_path).encode(container, output_path)
+        print(f"Total Time [{time.time()-start:.1f}s]")
 
 
 if __name__ == '__main__':

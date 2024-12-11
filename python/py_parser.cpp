@@ -37,6 +37,12 @@ void setupParser(py::module& m)
          "Get Parser to parse a config file and get the data container.")
     .def("parse", [](BufrParser& self, bufr::mpi::Comm& comm)
         {
+          if (comm.size() == 1)
+          {
+            // use non-mpi version of the parser
+            return self.parse(0);
+          }
+
           return self.parse(comm.getComm());
         },
         py::arg("comm"),

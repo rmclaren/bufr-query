@@ -58,27 +58,27 @@ void setupEncoderDescription(py::module& m)
       for (auto &global: self.getGlobals())
       {
         std::shared_ptr<GlobalWriterBase> writer = nullptr;
-        if (auto intGlobal =
+        if (auto _ =
           std::dynamic_pointer_cast<GlobalDescription<int>>(global))
         {
           writer = std::make_shared<PyGlobalWriter<int>>(pyGlobals);
         }
-        if (auto intGlobal =
+        else if (auto _ =
           std::dynamic_pointer_cast<GlobalDescription<std::vector<int>>>(global))
         {
           writer = std::make_shared<PyGlobalWriter<std::vector<int>>>(pyGlobals);
         }
-        else if (auto floatGlobal =
+        else if (auto _ =
           std::dynamic_pointer_cast<GlobalDescription<float>>(global))
         {
           writer = std::make_shared<PyGlobalWriter<float>>(pyGlobals);
         }
-        else if (auto floatVectorGlobal =
+        else if (auto _ =
           std::dynamic_pointer_cast<GlobalDescription<std::vector<float>>>(global))
         {
           writer = std::make_shared<PyGlobalWriter<std::vector<float>>>(pyGlobals);
         }
-        else if (auto doubleGlobal =
+        else if (auto _ =
           std::dynamic_pointer_cast<GlobalDescription<std::string>>(global))
         {
           writer = std::make_shared<PyGlobalWriter<std::string>>(pyGlobals);
