@@ -8,6 +8,7 @@
 
 #include <typeinfo>
 #include <iostream>
+#include <regex>  // NOLINT
 
 #include "DataObjectFunctions.h"
 
@@ -18,6 +19,8 @@
 namespace py = pybind11;
 
 namespace bufr {
+
+  static const std::regex strRegex("[|\\<\\>]?[US]\\d*");
 
   py::array pyArrayFromObj(const std::shared_ptr<DataObjectBase>& obj)
   {
@@ -84,11 +87,9 @@ namespace bufr {
 
     py::dtype dt          = pyData.dtype();
     std::string dtype_str = py::cast<std::string>(py::str(dt));
-    if (dtype_str[0] == 'U' || dtype_str[0] == 'S')
-    {
-      dataObj = _makeObject<std::string>(fieldName, pyData);
-    }
-    else if (pyData.dtype().is(py::dtype::of<float>()))
+
+    std::cmatch m;
+    if (pyData.dtype().is(py::dtype::of<float>()))
     {
       dataObj = _makeObject<float>(fieldName, pyData);
     }
@@ -104,6 +105,10 @@ namespace bufr {
     {
       dataObj = _makeObject<int64_t>(fieldName, pyData);
     }
+    else if (dtype_str == "object" || std::regex_match(dtype_str.c_str(), m, strRegex))
+    {
+      dataObj = _makeObject<std::string>(fieldName, pyData);
+    }
     else
     {
       throw eckit::BadParameter("ERROR: Unsupported data type.");
@@ -113,11 +118,12 @@ namespace bufr {
   }
 
   template <>
-  std::shared_ptr<DataObjectBase> _makeObject<std::string>(
-    const std::string& fieldName, const py::array& pyData, std::string dummy)
+  std::shared_ptr<DataObjectBase> _makeObject<std::string>(const std::string& fieldName,
+                                                           const py::array& pyData)
   {
+    std::cmatch m;
     const auto dtype_str = py::cast<std::string>(py::str(pyData.dtype()));
-    if (dtype_str[0] != 'U' && dtype_str[0] != 'S')
+    if (dtype_str != "object" && !std::regex_match(dtype_str.c_str(), m, strRegex))
     {
       throw std::runtime_error("DataContainer::makeObject: Type mismatch");
     }
@@ -127,14 +133,15 @@ namespace bufr {
     std::vector<std::string> strVec(pyData.size());
     for (size_t i = 0; i < static_cast<size_t>(pyData.size()); i++)
     {
-      strVec[i] = py::cast<std::string>(pyData(i));
+      py::object element = pyData.attr("__getitem__")(i);  // Get the element as a Python object
+      strVec[i] = element.cast<py::str>();    // Cast it to py::str
     }
 
     dataObj->setFieldName(fieldName);
     dataObj->setData(std::move(strVec));
     dataObj->setDims(std::vector<int>(pyData.shape(), pyData.shape() + pyData.ndim()));
+    dataObj->setDimPaths(std::vector<Query>(pyData.ndim()));
 
     return dataObj;
   }
-
 }  // namespace bufr

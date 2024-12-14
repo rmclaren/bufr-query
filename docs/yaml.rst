@@ -3,9 +3,9 @@
 Mapping YAML File
 =================
 
-The YAML mapping tells the BUFR component fields to read from the BUFR file, and how
-to encode those fields into an IODA ObsGroup object. To do that it defines 2 sections: `bufr` and
-`ioda`. The content of these sections (described bellow) can be thought of as descriptions for what
+The YAML mapping tells which BUFR component fields to read from the BUFR file, and how
+to encode those fields into the output format. To do that it defines 2 sections: `bufr` and
+`encoder`. The content of these sections (described bellow) can be thought of as descriptions for what
 will be read and how it will be encoded.
 
 .. note::
@@ -25,62 +25,60 @@ Here is an example:
 .. code-block:: yaml
 
   bufr:
-    exports:
-      group_by_variable: longitude  # Optional
-      subsets:
-        - NC004001
-        - NC004002
-        - NC004003
-      variables:
-        timestamp:
-          datetime:
-            year: "*/YEAR"
-            month: "*/MNTH"
-            day: "*/DAYS"
-            hour: "*/HOUR"
-            minute: "*/MINU"
-            second: "*/SECO"  # default assumed zero if skipped or found as missing
-            hoursFromUtc: 0  # Optional
+    group_by_variable: longitude  # Optional
+    subsets:
+      - NC004001
+      - NC004002
+      - NC004003
+    variables:
+      timestamp:
+        datetime:
+          year: "*/YEAR"
+          month: "*/MNTH"
+          day: "*/DAYS"
+          hour: "*/HOUR"
+          minute: "*/MINU"
+          second: "*/SECO"  # default assumed zero if skipped or found as missing
+          hoursFromUtc: 0  # Optional
 
-        # Or, sometimes BUFR data use an offset time related to model analysis/cycle.
-        timestamp:
-          timeoffset:
-            timeOffset: "*/PRSLEVEL/DRFTINFO/HRDR"
-            transforms:
-              - scale: 3600
-            referenceTime: "2020-11-01T12:00:00Z"
-
-        satellite_id:
-          query: "*/SAID"
-          type: int64
-        longitude:
-          query: "*/CLON"
+      # Or, sometimes BUFR data use an offset time related to model analysis/cycle.
+      timestamp:
+        timeoffset:
+          timeOffset: "*/PRSLEVEL/DRFTINFO/HRDR"
           transforms:
-            - offset: -180
-        latitude:
-          query: "*/CLAT"
-        channels:
-          query: "[*/BRITCSTC/CHNM, */BRIT/CHNM]"
-        radiance:
-          query: "[*/BRITCSTC/TMBR, */BRIT/TMBR]"
+            - scale: 3600
+          referenceTime: "2020-11-01T12:00:00Z"
 
-      splits:
-        satId:
-          category:
-            variable: satellite_id
-            map:
-              _3: sat_1  # can't use integers as keys
-              _5: sat_2
-              _8: sat_3
+      satellite_id:
+        query: "*/SAID"
+        type: int64
+      longitude:
+        query: "*/CLON"
+        transforms:
+          - offset: -180
+      latitude:
+        query: "*/CLAT"
+      channels:
+        query: "[*/BRITCSTC/CHNM, */BRIT/CHNM]"
+      radiance:
+        query: "[*/BRITCSTC/TMBR, */BRIT/TMBR]"
 
-      filters:
-        - bounding:
-            variable: longitude
-            upperBound: -68  # optional
-            lowerBound: -86.3  # optional
+    splits:
+      satId:
+        category:
+          variable: satellite_id
+          map:
+            _3: sat_1  # can't use integers as keys
+            _5: sat_2
+            _8: sat_3
 
-The bufr section contains a section called **exports** which defines the data to read from the BUFR.
-It has the following sub-sections:
+    filters:
+      - bounding:
+          variable: longitude
+          upperBound: -68  # optional
+          lowerBound: -86.3  # optional
+
+The **bufr** element has the following sub-elements:
 
 * **group_by_variable**: *(optional)* String value that defines the name of the variable to group
   observations by. If this field is missing then observations will not be re-grouped.
@@ -88,7 +86,7 @@ It has the following sub-sections:
   all subsets will be processed in accordance with the query definitions.
 * **variables**: List of variables to read as key value pairs.
 
-  * **keys** are arbitrary strings (anything you want). They can be referenced in the ioda section.
+  * **keys** are arbitrary strings (anything you want). They can be referenced in the output section.
   * **values** (One of these types):
 
     * **query**: Query string which is used to get the data from the BUFR file. *(optional)* Can
@@ -110,7 +108,7 @@ It has the following sub-sections:
   the splits with categories ("a", "b") and ("x", "y") will be combined into four split categories
   ("a", "x"), ("a", "y"), ("b", "x"), ("b", "y").
 
-  * **keys** are arbitrary strings (anything you want). They can be referenced in the ioda section.
+  * **keys** are arbitrary strings (anything you want). They can be referenced in the output section.
   * **values** Type of split to apply (currently supports **category**)
 
     * **category** Splits data based on values assocatied with a BUFR mnemonic. Constists of:
@@ -134,13 +132,11 @@ It has the following sub-sections:
 Encoder Description
 ~~~~~~~~~~~~~~~~
 
-The **ioda** section defines the ObsGroup objects that will be created. Here is an example:
+The **encoder** section defines the ObsGroup objects that will be created. Here is an example:
 
 .. code-block:: yaml
 
   encoder:
-    type: netcdf
-
     dimensions:
       - name: nchans
         paths:

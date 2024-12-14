@@ -45,5 +45,6 @@ void setupMpi(py::module& m)
   py::class_<bufr::mpi::Comm>(m, "Comm")
     .def(py::init<const std::string&>())
     .def("name", &bufr::mpi::Comm::name)
-    .def("rank", &bufr::mpi::Comm::rank);
+    .def("rank", &bufr::mpi::Comm::rank)
+    .def("size", &bufr::mpi::Comm::size);
 }
