@@ -236,18 +236,94 @@ namespace encoders {
         variables_.push_back(variable);
     }
 
-    void Description::py_addVariable(const std::string &name,
-                                     const std::string &source,
-                                     const std::string &unit,
-                                     const std::string &longName)
+    void Description::removeVariable(const std::string& name)
+    {
+        auto it = std::find_if(variables_.begin(), variables_.end(),
+                               [&name](const VariableDescription &var) {
+                                   return var.name == name;
+                               });
+
+        if (it != variables_.end())
+        {
+            variables_.erase(it);
+        }
+    }
+
+    void Description::addDimension(const std::string& name,
+                                   const std::vector<std::string>& paths,
+                                   const std::string& source)
+    {
+        DimensionDescription dim;
+        dim.name = name;
+
+        std::vector<Query> pathQueries(paths.size());
+        for (size_t path_idx=0; path_idx < paths.size(); path_idx++)
+        {
+          pathQueries[path_idx] = QueryParser::parse(paths[path_idx])[0];
+        }
+
+        dim.paths = pathQueries;
+
+        dim.source = source;
+        addDimension(dim);
+    }
+
+    void Description::removeDimension(const std::string& name)
+    {
+        auto it = std::find_if(dimensions_.begin(), dimensions_.end(),
+                               [&name](const DimensionDescription &dim) {
+                                   return dim.name == name;
+                               });
+
+        if (it != dimensions_.end())
+        {
+            dimensions_.erase(it);
+        }
+    }
+
+    void Description::removeGlobal(const std::string& name)
+    {
+        auto it = std::find_if(globals_.begin(), globals_.end(),
+                               [&name](const std::shared_ptr<GlobalDescriptionBase> &global) {
+                                   return global->name == name;
+                               });
+
+        if (it != globals_.end())
+        {
+            globals_.erase(it);
+        }
+    }
+
+    void Description::py_addVariable(const std::string& name,
+                                     const std::string& source,
+                                     const std::string& units,
+                                     const std::string& longName,
+                                     const std::string& coordinates,
+                                     const std::vector<size_t>& chunks,
+                                     const int compressionLevel)
     {
         VariableDescription variable;
         variable.name = name;
         variable.source = source;
-        variable.units = unit;
-        variable.longName = longName;
-        variable.compressionLevel = 6;
-        variable.chunks = {};
+        variable.units = units;
+
+        if (!longName.empty())
+        {
+          variable.longName = longName;
+        }
+
+        if (!coordinates.empty())
+        {
+            variable.coordinates = std::make_shared<std::string>(coordinates);
+        }
+
+        variable.compressionLevel = compressionLevel;
+
+        if (!chunks.empty())
+        {
+            variable.chunks = chunks;
+        }
+
         addVariable(variable);
     }
 

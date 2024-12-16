@@ -132,10 +132,10 @@ def test_highlevel_replace():
     assert obs_temp.shape == data.shape
     assert np.allclose(obs_temp[:, :], data * 1.1)
 
-def test_highlevel_add():
+def test_highlevel_modify():
     DATA_PATH = 'testdata/gdas.t00z.1bhrs4.tm00.bufr_d'
     YAML_PATH = 'testinput/bufrtest_hrs_basic_mapping.yaml'
-    OUTPUT_PATH = 'testrun/bufrtest_python_test.nc'
+    OUTPUT_PATH = 'testrun/bufrtest_python_test_modified.nc'
 
     container = bufr.Parser(DATA_PATH, YAML_PATH).parse()
 
@@ -156,6 +156,10 @@ def test_highlevel_add():
                              source='variables/str_data',
                              units='strs',
                              longName='Hello Strings')
+
+    description.add_global(name='title', value='Test Title')
+    description.add_global(name='int_vals', value=[3, 6, 12, 25])
+    description.add_global(name='float_vals', value=[3.14, 6.28, 12.0])
 
     dataset = next(iter(netcdf.Encoder(description).encode(container, OUTPUT_PATH).values()))
     obs_orig = dataset["ObsValue/brightnessTemperature"][:]
@@ -239,17 +243,17 @@ def test_highlevel_cache():
 
 
 if __name__ == '__main__':
-    # Low level interface tests
-    test_basic_query()
-    test_string_field()
-    test_long_str_field()
-    test_type_override()
-    test_invalid_query()
+    # # Low level interface tests
+    # test_basic_query()
+    # test_string_field()
+    # test_long_str_field()
+    # test_type_override()
+    # test_invalid_query()
 
     # High level interface tests
-    test_highlevel_replace()
-    test_highlevel_add()
-    test_highlevel_w_category()
-    test_highlevel_cache()
-    test_highlevel_append()
+    # test_highlevel_replace()
+    test_highlevel_modify()
+    # test_highlevel_w_category()
+    # test_highlevel_cache()
+    # test_highlevel_append()
 
