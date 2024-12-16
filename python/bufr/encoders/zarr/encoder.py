@@ -139,18 +139,12 @@ class Encoder:
 
         return dims
 
-
     def _make_path(self, prototype_path:str, sub_dict:dict[str, str]):
-        path_elements = os.path.split(prototype_path)
-        filename = path_elements[1]
-
-        subs = re.findall(r'\{(?P<sub>\w+\/\w+)\}', filename)
-
+        subs = re.findall(r'\{(?P<sub>\w+\/\w+)\}', prototype_path)
         for sub in subs:
-            filename.replace(f'{{{sub}}}', sub_dict[sub])
+            prototype_path = prototype_path.replace(f'{{{sub}}}', sub_dict[sub])
 
-        return os.path.join(path_elements[0], filename)
-
+        return prototype_path
 
     def _split_source_str(self, source:str) -> (str, str):
         components = source.split('/')
@@ -158,5 +152,4 @@ class Encoder:
         variable_name = components[1]
 
         return (group_name, variable_name)
-
 
