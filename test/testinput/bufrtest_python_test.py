@@ -161,6 +161,7 @@ def test_highlevel_modify():
                              longName='Hello Strings')
 
     description.add_global(name='title', value='Test Title')
+    description.add_global(name='int_val', value=2100)
     description.add_global(name='int_vals', value=[3, 6, 12, 25])
     description.add_global(name='float_vals', value=[3.14, 6.28, 12.0])
 
@@ -174,6 +175,8 @@ def test_highlevel_modify():
     assert np.all(obs_strs == str_data)
     assert 'title' in dataset.ncattrs()
     assert dataset.getncattr('title') == 'Test Title'
+    assert 'int_val' in dataset.ncattrs()
+    assert dataset.getncattr('int_val') == 2100
     assert 'int_vals' in dataset.ncattrs()
     assert np.all(dataset.getncattr('int_vals') == [3, 6, 12, 25])
     assert 'float_vals' in dataset.ncattrs()
