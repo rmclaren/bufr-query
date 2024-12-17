@@ -121,17 +121,6 @@ namespace encoders {
             addGlobal(global);
         }
 
-        // implement version of globals for vector<T>
-        template<typename T>
-        void addGlobal(const std::string& name,
-                       const std::vector<T>& value)
-        {
-            auto global = std::make_shared<GlobalDescription<std::vector<T>>>();
-            global->name = name;
-            global->value = value;
-            addGlobal(global);
-        }
-
         /// \brief Remove a global attribute
         void removeGlobal(const std::string& name);
 
