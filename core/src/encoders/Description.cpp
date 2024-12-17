@@ -243,10 +243,14 @@ namespace encoders {
                                    return var.name == name;
                                });
 
-        if (it != variables_.end())
+        if (it == variables_.end())
         {
-            variables_.erase(it);
+            std::stringstream errStr;
+            errStr << "Variable " << name << " not found.";
+            throw eckit::BadParameter(errStr.str());
         }
+
+        variables_.erase(it);
     }
 
     void Description::addDimension(const std::string& name,
@@ -275,10 +279,14 @@ namespace encoders {
                                    return dim.name == name;
                                });
 
-        if (it != dimensions_.end())
+        if (it == dimensions_.end())
         {
-            dimensions_.erase(it);
+            std::stringstream errStr;
+            errStr << "Dimension " << name << " not found.";
+            throw eckit::BadParameter(errStr.str());
         }
+
+        dimensions_.erase(it);
     }
 
     void Description::removeGlobal(const std::string& name)
@@ -288,10 +296,14 @@ namespace encoders {
                                    return global->name == name;
                                });
 
-        if (it != globals_.end())
+        if (it == globals_.end())
         {
-            globals_.erase(it);
+            std::stringstream errStr;
+            errStr << "Global " << name << " not found.";
+            throw eckit::BadParameter(errStr.str());
         }
+
+        globals_.erase(it);
     }
 
     void Description::py_addVariable(const std::string& name,

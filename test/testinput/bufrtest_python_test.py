@@ -150,7 +150,10 @@ def test_highlevel_modify():
     description.add_variable(name='ObsValue/new_brightnessTemperature',
                              source='variables/brightnessTemp_new',
                              units='K',
-                             longName='New Brightness Temperature')
+                             longName='New Brightness Temperature',
+                             coordinates='latitude longitude Channel',
+                             chunks=[20, 20],
+                             compressionLevel=9)
 
     description.add_variable(name='ObsValue/str_data',
                              source='variables/str_data',
@@ -165,11 +168,41 @@ def test_highlevel_modify():
     obs_orig = dataset["ObsValue/brightnessTemperature"][:]
     obs_temp = dataset["ObsValue/new_brightnessTemperature"][:]
     obs_strs = dataset["ObsValue/str_data"][:]
-    dataset.close()
 
     assert np.allclose(obs_temp, obs_orig)
     assert obs_temp.shape == data.shape
     assert np.all(obs_strs == str_data)
+    assert 'title' in dataset.ncattrs()
+    assert dataset.getncattr('title') == 'Test Title'
+    assert 'int_vals' in dataset.ncattrs()
+    assert np.all(dataset.getncattr('int_vals') == [3, 6, 12, 25])
+    assert 'float_vals' in dataset.ncattrs()
+    assert np.allclose(dataset.getncattr('float_vals'), np.array([3.14, 6.28, 12.0]))
+
+    dataset.close()
+
+    # Remove previously added variables and recheck output
+    description.remove_variable('ObsValue/new_brightnessTemperature')
+    description.remove_variable('ObsValue/str_data')
+    description.remove_global('title')
+    description.remove_global('int_vals')
+    description.remove_global('float_vals')
+
+    description.remove_dimension('Channel')
+    description.add_dimension(name='New_Channel',
+                              paths=['*/BRITCSTC', '*/BRIT'],
+                              source='variables/channel')
+
+    dataset = next(iter(netcdf.Encoder(description).encode(container, OUTPUT_PATH).values()))
+
+    assert 'ObsValue/new_brightnessTemperature' not in dataset.variables
+    assert 'ObsValue/str_data' not in dataset.variables
+    assert 'title' not in dataset.ncattrs()
+    assert 'int_vals' not in dataset.ncattrs()
+    assert 'float_vals' not in dataset.ncattrs()
+    assert 'New_Channel' in dataset.dimensions
+
+    dataset.close()
 
 def test_highlevel_append():
     DATA_PATH = 'testdata/gdas.t00z.1bhrs4.tm00.bufr_d'
@@ -243,17 +276,16 @@ def test_highlevel_cache():
 
 
 if __name__ == '__main__':
-    # # Low level interface tests
-    # test_basic_query()
-    # test_string_field()
-    # test_long_str_field()
-    # test_type_override()
-    # test_invalid_query()
+    # Low level interface tests
+    test_basic_query()
+    test_string_field()
+    test_long_str_field()
+    test_type_override()
+    test_invalid_query()
 
     # High level interface tests
-    # test_highlevel_replace()
+    test_highlevel_replace()
     test_highlevel_modify()
-    # test_highlevel_w_category()
-    # test_highlevel_cache()
-    # test_highlevel_append()
-
+    test_highlevel_w_category()
+    test_highlevel_cache()
+    test_highlevel_append()
