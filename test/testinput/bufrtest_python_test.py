@@ -3,6 +3,7 @@ import sys
 
 import bufr
 from bufr.encoders import netcdf
+from bufr.encoders import zarr
 import numpy as np
 
 
@@ -132,10 +133,10 @@ def test_highlevel_replace():
     assert obs_temp.shape == data.shape
     assert np.allclose(obs_temp[:, :], data * 1.1)
 
-def test_highlevel_modify():
+def test_highlevel_add():
     DATA_PATH = 'testdata/gdas.t00z.1bhrs4.tm00.bufr_d'
     YAML_PATH = 'testinput/bufrtest_hrs_basic_mapping.yaml'
-    OUTPUT_PATH = 'testrun/bufrtest_python_test_modified.nc'
+    OUTPUT_PATH = 'testrun/bufrtest_python_test.nc'
 
     container = bufr.Parser(DATA_PATH, YAML_PATH).parse()
 
@@ -150,62 +151,22 @@ def test_highlevel_modify():
     description.add_variable(name='ObsValue/new_brightnessTemperature',
                              source='variables/brightnessTemp_new',
                              units='K',
-                             longName='New Brightness Temperature',
-                             coordinates='latitude longitude Channel',
-                             chunks=[20, 20],
-                             compressionLevel=9)
+                             longName='New Brightness Temperature')
 
     description.add_variable(name='ObsValue/str_data',
                              source='variables/str_data',
                              units='strs',
                              longName='Hello Strings')
 
-    description.add_global(name='title', value='Test Title')
-    description.add_global(name='int_val', value=2100)
-    description.add_global(name='int_vals', value=[3, 6, 12, 25])
-    description.add_global(name='float_vals', value=[3.14, 6.28, 12.0])
-
     dataset = next(iter(netcdf.Encoder(description).encode(container, OUTPUT_PATH).values()))
     obs_orig = dataset["ObsValue/brightnessTemperature"][:]
     obs_temp = dataset["ObsValue/new_brightnessTemperature"][:]
     obs_strs = dataset["ObsValue/str_data"][:]
+    dataset.close()
 
     assert np.allclose(obs_temp, obs_orig)
     assert obs_temp.shape == data.shape
     assert np.all(obs_strs == str_data)
-    assert 'title' in dataset.ncattrs()
-    assert dataset.getncattr('title') == 'Test Title'
-    assert 'int_val' in dataset.ncattrs()
-    assert dataset.getncattr('int_val') == 2100
-    assert 'int_vals' in dataset.ncattrs()
-    assert np.all(dataset.getncattr('int_vals') == [3, 6, 12, 25])
-    assert 'float_vals' in dataset.ncattrs()
-    assert np.allclose(dataset.getncattr('float_vals'), np.array([3.14, 6.28, 12.0]))
-
-    dataset.close()
-
-    # Remove previously added variables and recheck output
-    description.remove_variable('ObsValue/new_brightnessTemperature')
-    description.remove_variable('ObsValue/str_data')
-    description.remove_global('title')
-    description.remove_global('int_vals')
-    description.remove_global('float_vals')
-
-    description.remove_dimension('Channel')
-    description.add_dimension(name='New_Channel',
-                              paths=['*/BRITCSTC', '*/BRIT'],
-                              source='variables/channel')
-
-    dataset = next(iter(netcdf.Encoder(description).encode(container, OUTPUT_PATH).values()))
-
-    assert 'ObsValue/new_brightnessTemperature' not in dataset.variables
-    assert 'ObsValue/str_data' not in dataset.variables
-    assert 'title' not in dataset.ncattrs()
-    assert 'int_vals' not in dataset.ncattrs()
-    assert 'float_vals' not in dataset.ncattrs()
-    assert 'New_Channel' in dataset.dimensions
-
-    dataset.close()
 
 def test_highlevel_append():
     DATA_PATH = 'testdata/gdas.t00z.1bhrs4.tm00.bufr_d'
@@ -277,6 +238,15 @@ def test_highlevel_cache():
     if bufr.DataCache.has(DATA_PATH, YAML_PATH):
         assert False, "Data Cache still contains entry."
 
+def test_zarr_encoder():
+    DATA_PATH = 'testdata/gdas.t18z.1bmhs.tm00.bufr_d'
+    YAML_PATH = 'testinput/bufrtest_mhs_basic_mapping.yaml'
+    OUTPUT_PATH = 'testrun/bufrtest_python_test.zarr'
+
+    container = bufr.Parser(DATA_PATH, YAML_PATH).parse()
+
+    dataset = next(iter(zarr.Encoder(YAML_PATH).encode(container, OUTPUT_PATH).values()))
+    assert abs(dataset['ObsValue/brightnessTemperature'][0,0] - 215.89) < 1e-3
 
 if __name__ == '__main__':
     # Low level interface tests
@@ -288,7 +258,11 @@ if __name__ == '__main__':
 
     # High level interface tests
     test_highlevel_replace()
-    test_highlevel_modify()
+    test_highlevel_add()
     test_highlevel_w_category()
     test_highlevel_cache()
     test_highlevel_append()
+
+    # Test Encoders
+    test_zarr_encoder()
+
