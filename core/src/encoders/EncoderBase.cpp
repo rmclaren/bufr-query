@@ -81,6 +81,7 @@ namespace encoders {
           }
           warningStr << ")";
           std::cout << warningStr.str() << std::endl;
+          continue;
         }
 
         // Validate the path for the source field makes sense for the dimension
