@@ -46,76 +46,6 @@ namespace encoders {
       rootLocation,
       std::vector<std::string>{"*"}});
 
-    // Find the named dimensions
-    auto findNamedDimForPath = [&dims = dims](const std::string& dim_path) -> std::optional<EncoderDimension>
-    {
-      for (const auto& dim : dims)
-      {
-        for (const auto& path : dim.paths)
-        {
-          if (path == dim_path)
-          {
-            return dim;
-          }
-        }
-      }
-
-      return std::nullopt;
-    };
-
-    auto getPathSize = [&container = container](const std::vector<std::string>& paths,
-      const std::vector<std::string>& category) -> size_t
-    {
-      for (const auto& varName : container->getFieldNames())
-      {
-        auto dataObject = container->get(varName, category);
-        for (const auto& path : paths)
-        {
-          size_t dimIdx = 0;
-          for (const auto& dimPath : dataObject->getDimPaths())
-          {
-            if (dimPath.str() == path)
-            {
-              return dataObject->getDims()[dimIdx];
-            }
-
-            dimIdx++;
-          }
-        }
-      }
-
-      auto errStr = std::ostringstream {};
-      errStr << "Couldn't find any given paths ";
-      for (const auto& path : paths)
-      {
-        errStr << path << " ";
-      }
-      errStr << "in the container.";
-
-      throw eckit::BadParameter(errStr.str());
-    };
-
-    auto isDimPath = [&container = container](const std::vector<std::string>& paths,
-                                              const std::vector<std::string>& category) -> bool
-    {
-      for (const auto &varName: container->getFieldNames())
-      {
-        auto dataObject = container->get(varName, category);
-        for (const auto &path: paths)
-        {
-          for (const auto &dimPath: dataObject->getDimPaths())
-          {
-            if (dimPath.str() == path)
-            {
-              return true;
-            }
-          }
-        }
-      }
-
-      return false;
-    };
-
     for (const auto& descDim : description_.getDims())
     {
       std::vector<int> labels;
@@ -127,7 +57,7 @@ namespace encoders {
       }
 
       // Skip the dimension if it is not in any data path
-      if (!isDimPath(paths, category))
+      if (!isDimPath(container, paths, category))
       {
         continue;
       }
@@ -181,14 +111,14 @@ namespace encoders {
       {
         labels = patternToDimLabels(descDim.labels);
 
-        if (labels.size() != getPathSize(paths, category))
+        if (labels.size() != getPathSize(container, paths, category))
         {
           throw eckit::BadParameter("Number of labels does not match the length of the path.");
         }
       }
       else
       {
-        auto pathLength = getPathSize(paths, category);
+        auto pathLength = getPathSize(container, paths, category);
         labels.resize(pathLength, 0);
       }
 
@@ -206,7 +136,7 @@ namespace encoders {
       const auto dataObject = container->get(varName, category);
       for (const auto &path: dataObject->getDimPaths())
       {
-        if (!findNamedDimForPath(path.str()))
+        if (!findNamedDimForPath(dims, path.str()))
         {
           auto labels = std::vector<int>(dataObject->getDims().back());
 
@@ -272,6 +202,79 @@ namespace encoders {
     }
 
     return indices;
+  }
+
+  std::optional<EncoderDimension> EncoderBase::findNamedDimForPath(
+                                                          const std::vector<EncoderDimension>& dims,
+                                                          const std::string& dim_path) const
+  {
+    for (const auto& dim : dims)
+    {
+      for (const auto& path : dim.paths)
+      {
+        if (path == dim_path)
+        {
+          return dim;
+        }
+      }
+    }
+
+    return std::nullopt;
+  }
+
+  size_t EncoderBase::getPathSize(const std::shared_ptr<DataContainer>& container,
+                                  const std::vector<std::string>& paths,
+                                  const std::vector<std::string>& category) const
+  {
+    for (const auto& varName : container->getFieldNames())
+    {
+      auto dataObject = container->get(varName, category);
+      for (const auto& path : paths)
+      {
+        size_t dimIdx = 0;
+        for (const auto& dimPath : dataObject->getDimPaths())
+        {
+          if (dimPath.str() == path)
+          {
+            return dataObject->getDims()[dimIdx];
+          }
+
+          dimIdx++;
+        }
+      }
+    }
+
+    auto errStr = std::ostringstream {};
+    errStr << "Couldn't find any given paths ";
+    for (const auto& path : paths)
+    {
+      errStr << path << " ";
+    }
+    errStr << "in the container.";
+
+    throw eckit::BadParameter(errStr.str());
+  }
+
+  bool EncoderBase::isDimPath(const std::shared_ptr<DataContainer>& container,
+                              const std::vector<std::string>& paths,
+                              const std::vector<std::string>& category) const
+  {
+    for (const auto &varName: container->getFieldNames())
+    {
+      auto dataObject = container->get(varName, category);
+      for (const auto &path: paths)
+      {
+        for (const auto &dimPath: dataObject->getDimPaths())
+        {
+          if (dimPath.str() == path)
+          {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 }  // namespace encoders
 }  // namespace bufr
