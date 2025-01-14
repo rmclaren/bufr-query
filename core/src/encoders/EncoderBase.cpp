@@ -28,24 +28,24 @@ namespace encoders {
   {
   }
 
-  std::vector<EncoderDimension> EncoderBase::getEncodedDimensions(
+  std::vector<EncoderDimension> EncoderBase::getEncoderDimensions(
                                                     const std::shared_ptr<DataContainer>& container,
                                                     const std::vector<std::string>& category)
   {
     std::vector<EncoderDimension> dims;
 
-    // Add the root Location dimension as a named dimension
+    // Add the root "Location" dimension as a named dimension
     auto rootLocation = DimensionDescription();
     rootLocation.name = LocationName;
     rootLocation.source = "";
 
-    // Add the Location dimension
     auto numLocs = container->get(container->getFieldNames().front(), category)->getDims().front();
     dims.push_back(EncoderDimension{
       std::make_shared<DimensionData<int>>(LocationName, numLocs),
       rootLocation,
       std::vector<std::string>{"*"}});
 
+    // Add dimensions that are explicitly defined in the description (YAML file)
     for (const auto& descDim : description_.getDims())
     {
       std::vector<int> labels;
@@ -56,12 +56,32 @@ namespace encoders {
         paths.emplace_back(path.str());
       }
 
-      // Skip the dimension if it is not in any data path
+      // Skip the dimension if it is not in any data dimensioning path.
+      // The dimension might have been removed via group_by, or that path might
+      // not exist in the read data.
       if (!isDimPath(container, paths, category))
       {
+        std::stringstream warningStr;
+        warningStr << "WARNING: Dimension " << descDim.name << " has no query path for category (";
+
+        for (const auto& cat : category)
+        {
+          warningStr << cat;
+
+          if (cat != category.back())
+          {
+            warningStr << ", ";
+          }
+        }
+        warningStr << ")";
+
+        std::cout << warningStr.str() << std::endl;
+
         continue;
       }
 
+      // Make the labels for explicitly defined dimensions.
+      // Make the labels for dimensions from the "source" variable
       if (!descDim.source.empty())
       {
         auto dataObject = container->get(descDim.source, category);
@@ -108,6 +128,7 @@ namespace encoders {
           throw eckit::BadParameter("Dimension data type not supported.");
         }
       }
+      // Create the labels for specified by the "labels" field
       else if (!descDim.labels.empty())
       {
         labels = patternToDimLabels(descDim.labels);
@@ -117,20 +138,23 @@ namespace encoders {
           throw eckit::BadParameter("Number of labels does not match the length of the path.");
         }
       }
+      // Set labels to the default (all 0's)
       else
       {
         auto pathLength = getPathSize(container, paths, category);
         labels.resize(pathLength, 0);
       }
 
+      // Create the encoder dimension
       auto newDim = EncoderDimension{};
       newDim.dimObj = std::make_shared<DimensionData<int>>(descDim.name, labels);
       newDim.description = descDim;
       newDim.paths = paths;
-
       dims.push_back(newDim);
     }
 
+    // Find additional dimensions that are not explicitly defined in the description (YAML file)
+    // but that are needed to encode the data.
     size_t dimIdx = 2;
     for (const auto &varDesc: description_.getVariables())
     {
@@ -150,6 +174,7 @@ namespace encoders {
           dimDesc.name = dimName;
           dimDesc.source = "";
 
+          // Create the encoder dimension
           auto newDim = EncoderDimension{};
           newDim.dimObj = std::make_shared<DimensionData<int>>(dimName, labels);
           newDim.description = dimDesc;

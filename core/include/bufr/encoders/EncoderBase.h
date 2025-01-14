@@ -39,7 +39,7 @@ namespace encoders {
     /// \brief The description
     const Description description_;
 
-    std::vector<EncoderDimension> getEncodedDimensions(
+    std::vector<EncoderDimension> getEncoderDimensions(
                                                     const std::shared_ptr<DataContainer>& container,
                                                     const std::vector<std::string>& category);
 
@@ -56,6 +56,7 @@ namespace encoders {
     bool isDimPath(const std::shared_ptr<DataContainer>& container,
                    const std::vector<std::string>& paths,
                    const std::vector<std::string>& category) const;
+
   };
 }  // namespace encoders
 }  // namespace bufr

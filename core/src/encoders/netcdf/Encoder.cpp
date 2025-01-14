@@ -173,7 +173,7 @@ namespace netcdf {
         {
             var = createVar(dblobj, group, name, dimNames, chunks, compressionLevel);
         }
-        else if (auto intobj = std::dynamic_pointer_cast<DataObject<int32_t >>(object))
+        else if (auto intobj = std::dynamic_pointer_cast<DataObject<int32_t>>(object))
         {
             var = createVar(intobj, group, name, dimNames, chunks, compressionLevel);
         }
@@ -306,7 +306,7 @@ namespace netcdf {
             }
 
             // Add Dimensions
-            auto dims = getEncodedDimensions(dataContainer, categories);
+            auto dims = getEncoderDimensions(dataContainer, categories);
             for (auto dim: dims)
             {
                 const auto& ncDim = file->addDim(dim.dimObj->name, dim.dimObj->size());
