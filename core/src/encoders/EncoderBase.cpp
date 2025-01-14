@@ -131,10 +131,11 @@ namespace encoders {
       dims.push_back(newDim);
     }
 
-    size_t dimIdx = 1;
-    for (const auto& varName : container->getFieldNames())
+    size_t dimIdx = 2;
+    for (const auto &varDesc: description_.getVariables())
     {
-      const auto dataObject = container->get(varName, category);
+      auto dataObject = container->get(varDesc.source, category);
+
       for (const auto &path: dataObject->getDimPaths())
       {
         if (!findNamedDimForPath(dims, path.str()))
