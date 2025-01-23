@@ -10,12 +10,14 @@ import bufr
 
 
 # Encoder for Zarr format
-class Encoder:
+class Encoder(bufr.encoders.EncoderBase):
     def __init__(self, description: Union[str, bufr.encoders.Description]):
         if isinstance(description, str):
             self.description = bufr.encoders.Description(description)
         else:
             self.description = description
+
+        super(Encoder, self).__init__(self.description)
 
     def encode(self, container: bufr.DataContainer, output_path: str) -> dict[tuple[str],zarr.Group]:
         result:dict[tuple[str], zarr.Group] = {}
@@ -78,66 +80,32 @@ class Encoder:
         for key, data in self.description.get_globals().items():
             root.attrs[key] = data
 
-    def _add_dimensions(self, root:zarr.Group, container: bufr.DataContainer, category:[str]):
-        dims = {}
+    def _add_dimensions(self, root:zarr.Group,
+                        container: bufr.DataContainer,
+                        category:[str]) -> dict[str, list[str]]:
 
-        named_dim_paths = {}
-        named_dim_sources = {}
-        named_dim_vars = {}
+        # Get the dimensions for the encoder
+        dims = self.get_encoder_dimensions(container, category)
 
-        # Add the location dimension
-        named_dim_paths['Location'] = ['*']
-        named_dim_vars['Location'] = container.list()[0]
-
-        # Find the named dimensions
-        for conf_dim in self.description.get_dims():
-            named_dim_paths[conf_dim['name']] = conf_dim['paths']
-            if conf_dim['source']:
-                named_dim_sources[conf_dim['name']] = conf_dim['source']
-
-        def find_named_dim(dim_path:str) -> str:
-            for (key, path_list) in named_dim_paths.items():
-                for path in path_list:
-                    if path == dim_path:
-                        return key
-            return ''
-
-        unamed_dim_idx = 1
-        for var_name in container.list():
-            if not var_name in dims:
-                dims[var_name] = []
-
-            for path in container.get_paths(var_name, category):
-                dim_name = find_named_dim(path)
-                if not dim_name:
-                    dim_name = f'dim_{unamed_dim_idx}'
-                    unamed_dim_idx += 1
-                    named_dim_paths[dim_name] = [path]
-                    named_dim_vars[dim_name] = var_name
-                else:
-                    named_dim_vars[dim_name] = var_name
-
-                dims[var_name].append(f'/dimensions/{dim_name}')
-
-        # # Create the datasets backing the dimensions
+        # Add the backing variables for the dimensions
         dim_group = root.create_group('dimensions')
-        for dim_name in named_dim_paths.keys():
-            dim_paths = container.get_paths(named_dim_vars[dim_name], category)
-            if dim_name in named_dim_sources:
-                dim_data = container.get(named_dim_sources[dim_name], category)
-
-                # Get the data associated with the last dimension of the source array
-                dim_data = dim_data[(0,) * (dim_data.ndim - 1) + (slice(None),)]
-            else:
-                length = container.get(named_dim_vars[dim_name], category).shape[len(dim_paths) - 1]
-                dim_data = np.arange(0, length)
-
-            dim_store = dim_group.create_dataset(dim_name,
-                                                 shape=dim_data.shape,
-                                                 dtype=dim_data.dtype)
+        for dim in dims:
+            dim_data = dim.labels
+            dim_store = dim_group.create_dataset(dim, shape=[len(dim_data)], dtype=int)
             dim_store[:] = dim_data
 
-        return dims
+        # Map the dimensions to the container variables
+        var_dim_dict:dict[str, list[str]] = {}   # {var_name: [dim_name]}
+        for var_name in container.list():
+            var_dim_dict[var_name] = []
+            for path in container.get_paths(var_name, category):
+                # find dim name with path
+                for dim in dims:
+                    if path in dim.paths:
+                        var_dim_dict[var_name].append(dim.name())
+                        break
+
+        return var_dim_dict
 
     def _make_path(self, prototype_path:str, sub_dict:dict[str, str]):
         subs = re.findall(r'\{(?P<sub>\w+\/\w+)\}', prototype_path)

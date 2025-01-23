@@ -333,24 +333,15 @@ namespace netcdf {
                 for (size_t dimIdx = 0; dimIdx < dataObject->getDims().size(); dimIdx++)
                 {
                     auto dimPath = dataObject->getDimPaths()[dimIdx];
-                    std::string dimName;
-                    for (const auto& dim : dims)
+                    const auto dim = findNamedDimForPath(dims, dimPath.str());
+                    if (!dim)
                     {
-                      for (const auto& knownDimPath : dim.paths)
-                      {
-                        if (knownDimPath== dimPath.str())
-                        {
-                          dimName = dim.dimObj->name;
-                          break;
-                        }
-                      }
-
-                      if (!dimName.empty())
-                      {
-                        break;
-                      }
+                      std::ostringstream errorStr;
+                      errorStr << "Could not find dimension for path " << dimPath.str();
+                      throw eckit::BadParameter(errorStr.str());
                     }
 
+                    const auto dimName = dim->dimObj->name;
                     dimNames.push_back(dimName);
 
                     auto dimVar = group.getVar(dimName);

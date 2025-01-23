@@ -39,15 +39,15 @@ namespace encoders {
     /// \brief The description
     const Description description_;
 
-    std::vector<EncoderDimension> getEncoderDimensions(
+    virtual std::vector<EncoderDimension> getEncoderDimensions(
                                                     const std::shared_ptr<DataContainer>& container,
                                                     const std::vector<std::string>& category);
 
+    virtual std::optional<EncoderDimension> findNamedDimForPath(const std::vector<EncoderDimension>& dims,
+                                                        const std::string& dim_path) const;
+
   private:
     std::vector<int> patternToDimLabels(const std::string& str) const;
-
-    std::optional<EncoderDimension> findNamedDimForPath(const std::vector<EncoderDimension>& dims,
-                                                        const std::string& dim_path) const;
 
     size_t getPathSize(const std::shared_ptr<DataContainer>& container,
                        const std::vector<std::string>& paths,
