@@ -99,11 +99,7 @@ class Encoder(bufr.encoders.EncoderBase):
         for var_name in container.list():
             var_dim_dict[var_name] = []
             for path in container.get_paths(var_name, category):
-                # find dim name with path
-                for dim in dims:
-                    if path in dim.paths:
-                        var_dim_dict[var_name].append(dim.name())
-                        break
+                var_dim_dict[var_name].append(self.find_named_dim_for_path(dims, path).name())
 
         return var_dim_dict
 
