@@ -315,6 +315,9 @@ namespace netcdf {
                 dim.dimObj->write(std::make_shared<VarWriter<int>>(ncVar));
             }
 
+            auto varDimNameMap = getVariableDimNameMap(dataContainer, categories, dims);
+            auto varChunkMap = getVariableChunkSizeMap(dataContainer, categories, dims);
+
             // Write all the other Variables
             std::set<std::string> groupNames;
             for (const auto &varDesc: description_.getVariables())
@@ -327,60 +330,12 @@ namespace netcdf {
                 }
 
                 auto group = file->getGroup(groupName);
-                std::vector<size_t> chunks = {};
-                auto dimNames = std::vector<std::string>();
-                auto dataObject = dataContainer->get(varDesc.source, categories);
-                for (size_t dimIdx = 0; dimIdx < dataObject->getDims().size(); dimIdx++)
-                {
-                    auto dimPath = dataObject->getDimPaths()[dimIdx];
-                    const auto dim = findNamedDimForPath(dims, dimPath.str());
-                    if (!dim)
-                    {
-                      std::ostringstream errorStr;
-                      errorStr << "Could not find dimension for path " << dimPath.str();
-                      throw eckit::BadParameter(errorStr.str());
-                    }
-
-                    const auto dimName = dim->dimObj->name;
-                    dimNames.push_back(dimName);
-
-                    auto dimVar = group.getVar(dimName);
-
-                    auto dimChunk = static_cast<size_t>(dataObject->getDims()[dimIdx]);
-                    auto chunkMode = nc::NcVar::ChunkMode::nc_CHUNKED;
-                    if (!dimVar.isNull())
-                    {
-                      std::vector<size_t> varChunks;
-                      dimVar.getChunkingParameters(chunkMode, varChunks);
-                      dimChunk = varChunks[dimIdx];
-                    }
-
-                    if (dimIdx < varDesc.chunks.size())
-                    {
-                      chunks.push_back(std::min(dimChunk, varDesc.chunks[dimIdx]));
-                    }
-                    else
-                    {
-                      chunks.push_back(dimChunk);
-                    }
-                }
-
-                // Check that dateTime variable has the right dimensions
-                if (varDesc.name == "MetaData/dateTime" || varDesc.name == "MetaData/datetime")
-                {
-                    if (dimNames.size() != 1)
-                    {
-                        throw eckit::BadParameter(
-                            "Datetime variable must be one dimensional.");
-                    }
-                }
-
-                auto var = createVarFromObj(dataObject,
-                                            group,
-                                            varName,
-                                            dimNames,
-                                            chunks,
-                                            varDesc.compressionLevel);
+                auto var = createVarFromObj(dataContainer->get(varDesc.source, categories),
+                                                    group,
+                                                    varName,
+                                                    varDimNameMap[varDesc.name],
+                                                    varChunkMap[varDesc.name],
+                                                    varDesc.compressionLevel);
 
                 var.putAtt("long_name", varDesc.longName);
                 if (!varDesc.units.empty())

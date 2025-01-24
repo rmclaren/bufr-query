@@ -21,7 +21,37 @@ namespace encoders {
   {
     std::shared_ptr<DimensionDataBase> dimObj;  // Dimension data
     DimensionDescription description;  // Dimension description
-    std::vector<std::string> paths;  // BUFR paths associated with the dimension
+    std::vector<std::string> paths; // BUFR paths associated with the dimension
+  };
+
+  class EncoderDimensions
+  {
+   public:
+      EncoderDimensions() = delete;
+      EncoderDimensions(const std::vector<EncoderDimension> dims,
+                        const std::shared_ptr<DataContainer>& container,
+                        const std::vector<std::string>& category) :
+          dims_(dims),
+          varDimNameMap_(makeVarDimNameMap(container, category)),
+          varChunkMap_(makeVarChunkMap(container, category))
+      {;
+      }
+
+      std::map<std::string, std::vector<std::string>> getVarDimNameMap() { return varDimNameMap_; }
+      std::map<std::string, std::vector<size_t>> getVarChunkMap() { return varChunkMap_; }
+
+    private:
+      const std::vector<EncoderDimension> dims_;
+      const std::map<std::string, std::vector<std::string>> varDimNameMap_;
+      const std::map<std::string, std::vector<size_t>> varChunkMap_;
+
+      std::map<std::string, std::vector<std::string>> makeVarDimNameMap(
+                                                    const std::shared_ptr<DataContainer>& container,
+                                                    const std::vector<std::string>& category);
+
+      std::map<std::string, std::vector<size_t>> makeVarChunkMap(
+                                                    const std::shared_ptr<DataContainer>& container,
+                                                    const std::vector<std::string>& category);
   };
 
   class EncoderBase
@@ -39,11 +69,21 @@ namespace encoders {
     /// \brief The description
     const Description description_;
 
-    virtual std::vector<EncoderDimension> getEncoderDimensions(
+    std::vector<EncoderDimension> getEncoderDimensions(
                                                     const std::shared_ptr<DataContainer>& container,
-                                                    const std::vector<std::string>& category);
+                                                    const std::vector<std::string>& category) const;
 
-    virtual std::optional<EncoderDimension> findNamedDimForPath(const std::vector<EncoderDimension>& dims,
+    std::map<std::string, std::vector<std::string>> getVariableDimNameMap(
+                                                  const std::shared_ptr<DataContainer>& container,
+                                                  const std::vector<std::string>& category,
+                                                  const std::vector<EncoderDimension>& dims) const;
+
+    std::map<std::string, std::vector<size_t>> getVariableChunkSizeMap(
+                                                  const std::shared_ptr<DataContainer>& container,
+                                                  const std::vector<std::string>& category,
+                                                  const std::vector<EncoderDimension>& dims) const;
+
+    std::optional<EncoderDimension> findNamedDimForPath(const std::vector<EncoderDimension>& dims,
                                                         const std::string& dim_path) const;
 
   private:
