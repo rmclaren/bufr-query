@@ -12,14 +12,11 @@
 #include <memory>
 #include <iostream>
 #include <vector>
-#include <netcdf>
 
 #include "eckit/mpi/Comm.h"
 
 #include "QueryParser.h"
 #include "Data.h"
-
-namespace nc = netCDF;
 
 
 namespace bufr {
