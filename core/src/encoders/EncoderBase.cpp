@@ -13,6 +13,116 @@ namespace encoders {
   static const std::string LocationName = "Location";
   static const char* DefualtDimName = "dim";
 
+  // EncoderDimension Methods
+
+  std::map<std::string, std::vector<std::string>> EncoderDimensions::initVarDimNameMap(
+                                                    const Description &description,
+                                                    const std::shared_ptr<DataContainer>& container,
+                                                    const std::vector<std::string>& category) const
+  {
+    auto varDimNameMap = std::map<std::string, std::vector<std::string>>();
+    for (const auto& var : description.getVariables())
+    {
+      const auto varObj = container->get(var.source, category);
+      varDimNameMap[var.name] = std::vector<std::string>();
+
+      for (const auto& path : varObj->getDimPaths())
+      {
+        auto dim = findNamedDimForPath(path.str());
+        if (dim)
+        {
+          varDimNameMap[var.name].push_back((*dim)->description.name);
+        }
+        else
+        {
+          std::ostringstream errStr;
+          errStr << "Could not find dimension for path " << path.str();
+          throw eckit::BadParameter(errStr.str());
+        }
+      }
+
+      // Check that datetime variable has the rite number of dimensions
+      if (var.name == "MetaData/dateTime" || var.name == "MetaData/datetime")
+      {
+        if (varDimNameMap[var.name].size() != 1)
+        {
+          throw eckit::BadParameter(
+            "Datetime variable must be one dimensional.");
+        }
+      }
+    }
+
+    return varDimNameMap;
+  }
+
+  std::map<std::string, std::vector<size_t>> EncoderDimensions::initVarChunkMap(
+                                                    const Description &description,
+                                                    const std::shared_ptr<DataContainer>& container,
+                                                    const std::vector<std::string>& category) const
+  {
+    auto varChunkMap = std::map<std::string, std::vector<size_t>>();
+    for (const auto& var : description.getVariables())
+    {
+      const auto varObj = container->get(var.source, category);
+      varChunkMap[var.name] = std::vector<size_t>();
+
+      if (var.chunks.empty())
+      {
+        for (const auto& dimPath : varObj->getDimPaths())
+        {
+          auto dim = findNamedDimForPath(dimPath.str());
+          if (dim)
+          {
+            varChunkMap[var.name].push_back((*dim)->dimObj->size());
+          }
+          else
+          {
+            std::ostringstream errStr;
+            errStr << "Could not find dimension for path " << dimPath.str();
+            throw eckit::BadParameter(errStr.str());
+          }
+        }
+      }
+      else
+      {
+        if (var.chunks.size() != varObj->getDimPaths().size())
+        {
+          std::ostringstream errStr;
+          errStr << "Number of chunk sizes does not match the number of dimensions for variable ";
+          errStr << var.name;
+          throw eckit::BadParameter(errStr.str());
+        }
+
+        size_t dimIdx = 0;
+        for (const auto& chunkSize : var.chunks)
+        {
+          varChunkMap[var.name].push_back(std::min(chunkSize, dims_[dimIdx]->dimObj->size()));
+          dimIdx++;
+        }
+      }
+    }
+
+    return varChunkMap;
+  }
+
+  std::optional<EncoderDimensionPtr> EncoderDimensions::findNamedDimForPath(
+    const std::string& dim_path) const
+  {
+    for (const auto& dim : dims_)
+    {
+      for (const auto& path : dim->paths)
+      {
+        if (path == dim_path)
+        {
+          return dim;
+        }
+      }
+    }
+
+    return std::nullopt;
+  }
+
+  // EncoderBase Methods
   EncoderBase::EncoderBase(const std::string &yamlPath) :
     description_(Description(yamlPath))
   {
@@ -28,11 +138,11 @@ namespace encoders {
   {
   }
 
-  std::vector<EncoderDimension> EncoderBase::getEncoderDimensions(
+  EncoderDimensions EncoderBase::getEncoderDimensions(
                                                     const std::shared_ptr<DataContainer>& container,
                                                     const std::vector<std::string>& category) const
   {
-    std::vector<EncoderDimension> dims;
+    std::vector<EncoderDimensionPtr> dims;
 
     // Add the root "Location" dimension as a named dimension
     auto rootLocation = DimensionDescription();
@@ -41,10 +151,10 @@ namespace encoders {
 
     auto numLocs =
       container->get(container->getFieldNames().front(), category)->getDims().front();
-    dims.push_back(EncoderDimension{
-      std::make_shared<DimensionData<int>>(LocationName, numLocs),
-      rootLocation,
-      std::vector<std::string>{"*"}});
+    dims.push_back(std::make_shared<EncoderDimension>(
+                                        std::make_shared<DimensionData<int>>(LocationName, numLocs),
+                                        rootLocation,
+                                        std::vector<std::string>{"*"}));
 
     // Add dimensions that are explicitly defined in the description (YAML file)
     for (const auto& descDim : description_.getDims())
@@ -148,10 +258,11 @@ namespace encoders {
       }
 
       // Create the encoder dimension
-      auto newDim = EncoderDimension{};
-      newDim.dimObj = std::make_shared<DimensionData<int>>(descDim.name, labels);
-      newDim.description = descDim;
-      newDim.paths = paths;
+      auto newDim = std::make_shared<EncoderDimension>(
+        std::make_shared<DimensionData<int>>(descDim.name, labels),
+        descDim,
+        paths);
+
       dims.push_back(newDim);
     }
 
@@ -177,16 +288,28 @@ namespace encoders {
           dimDesc.source = "";
 
           // Create the encoder dimension
-          auto newDim = EncoderDimension{};
-          newDim.dimObj = std::make_shared<DimensionData<int>>(dimName, labels);
-          newDim.description = dimDesc;
-          newDim.paths = std::vector<std::string>{path.str()};
+          auto newDim = std::make_shared<EncoderDimension>(
+            std::make_shared<DimensionData<int>>(dimName, labels),
+            dimDesc,
+            std::vector<std::string>{path.str()});
+
           dims.push_back(newDim);
         }
       }
     }
 
-    return dims;
+    return EncoderDimensions(dims, description_, container, category);
+  }
+
+  std::optional<EncoderDimensionPtr> EncoderBase::findNamedDimForPath(
+    const std::vector<EncoderDimensionPtr>& dims,
+    const std::string& dim_path)
+  {
+    auto it = std::find_if(dims.begin(), dims.end(), [&](const EncoderDimensionPtr& dim)
+    {
+      return std::find(dim->paths.begin(), dim->paths.end(), dim_path) != dim->paths.end();
+    });
+    return it != dims.end() ? std::optional<EncoderDimensionPtr>(*it) : std::nullopt;
   }
 
   std::vector<int> EncoderBase::patternToDimLabels(const std::string& str) const
@@ -231,114 +354,6 @@ namespace encoders {
     }
 
     return indices;
-  }
-
-  std::map<std::string, std::vector<std::string>> EncoderBase::getVariableDimNameMap(
-                                                  const std::shared_ptr<DataContainer>& container,
-                                                  const std::vector<std::string>& category,
-                                                  const std::vector<EncoderDimension>& dims) const
-  {
-    auto varDimNameMap = std::map<std::string, std::vector<std::string>>();
-    for (const auto& var : description_.getVariables())
-    {
-      const auto varObj = container->get(var.source, category);
-      varDimNameMap[var.name] = std::vector<std::string>();
-
-      for (const auto& path : varObj->getDimPaths())
-      {
-        auto dim = findNamedDimForPath(dims, path.str());
-        if (dim)
-        {
-          varDimNameMap[var.name].push_back(dim->description.name);
-        }
-        else
-        {
-          std::ostringstream errStr;
-          errStr << "Could not find dimension for path " << path.str();
-          throw eckit::BadParameter(errStr.str());
-        }
-      }
-
-      // Check that datetime variable has the rite number of dimensions
-      if (var.name == "MetaData/dateTime" || var.name == "MetaData/datetime")
-      {
-        if (varDimNameMap[var.name].size() != 1)
-        {
-          throw eckit::BadParameter(
-            "Datetime variable must be one dimensional.");
-        }
-      }
-    }
-
-    return varDimNameMap;
-  }
-
-  std::map<std::string, std::vector<size_t>> EncoderBase::getVariableChunkSizeMap(
-                                                  const std::shared_ptr<DataContainer>& container,
-                                                  const std::vector<std::string>& category,
-                                                  const std::vector<EncoderDimension>& dims) const
-  {
-    auto varChunkMap = std::map<std::string, std::vector<size_t>>();
-    for (const auto& var : description_.getVariables())
-    {
-      const auto varObj = container->get(var.source, category);
-      varChunkMap[var.name] = std::vector<size_t>();
-
-      if (var.chunks.empty())
-      {
-        for (const auto& dimPath : varObj->getDimPaths())
-        {
-          auto dim = findNamedDimForPath(dims, dimPath.str());
-          if (dim)
-          {
-            varChunkMap[var.name].push_back(dim->dimObj->size());
-          }
-          else
-          {
-            std::ostringstream errStr;
-            errStr << "Could not find dimension for path " << dimPath.str();
-            throw eckit::BadParameter(errStr.str());
-          }
-        }
-      }
-      else
-      {
-        if (var.chunks.size() != varObj->getDimPaths().size())
-        {
-          std::ostringstream errStr;
-          errStr << "Number of chunk sizes does not match the number of dimensions for variable ";
-          errStr << var.name;
-          throw eckit::BadParameter(errStr.str());
-        }
-
-        size_t dimIdx = 0;
-        for (const auto& chunkSize : var.chunks)
-        {
-          varChunkMap[var.name].push_back(std::min(chunkSize, dims[dimIdx].dimObj->size()));
-          dimIdx++;
-        }
-      }
-    }
-
-    return varChunkMap;
-  }
-
-  std::optional<EncoderDimension> EncoderBase::findNamedDimForPath(
-                                                          const std::vector<EncoderDimension>& dims,
-                                                          const std::string& dim_path) const
-  {
-    for (const auto& dim : dims)
-    {
-      for (const auto& path : dim.paths)
-      {
-        if (path == dim_path)
-        {
-          return dim;
-        }
-      }
-    }
-
-    return std::nullopt;
   }
 
   size_t EncoderBase::getPathSize(const std::shared_ptr<DataContainer>& container,

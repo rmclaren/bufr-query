@@ -307,16 +307,16 @@ namespace netcdf {
 
             // Add Dimensions
             auto dims = getEncoderDimensions(dataContainer, categories);
-            for (auto dim: dims)
+            for (auto dim: dims.dims())
             {
-                const auto& ncDim = file->addDim(dim.dimObj->name, dim.dimObj->size());
-                auto ncVar = file->addVar(dim.dimObj->name, nc::NcType::nc_INT, ncDim);
+                const auto& ncDim = file->addDim(dim->dimObj->name, dim->dimObj->size());
+                auto ncVar = file->addVar(dim->dimObj->name, nc::NcType::nc_INT, ncDim);
                 addAttribute(ncVar, _FillValue, DataObject<int>::missingValue());
-                dim.dimObj->write(std::make_shared<VarWriter<int>>(ncVar));
+                dim->dimObj->write(std::make_shared<VarWriter<int>>(ncVar));
             }
 
-            auto varDimNameMap = getVariableDimNameMap(dataContainer, categories, dims);
-            auto varChunkMap = getVariableChunkSizeMap(dataContainer, categories, dims);
+            const auto& varDimNameMap = dims.getVarDimNameMap();
+            const auto& varChunkMap = dims.getVarChunkMap();
 
             // Write all the other Variables
             std::set<std::string> groupNames;
@@ -331,11 +331,11 @@ namespace netcdf {
 
                 auto group = file->getGroup(groupName);
                 auto var = createVarFromObj(dataContainer->get(varDesc.source, categories),
-                                                    group,
-                                                    varName,
-                                                    varDimNameMap[varDesc.name],
-                                                    varChunkMap[varDesc.name],
-                                                    varDesc.compressionLevel);
+                                            group,
+                                            varName,
+                                            dims.getVarDimNameMap().at(varDesc.name),
+                                            dims.getVarChunkMap().at(varDesc.name),
+                                            varDesc.compressionLevel);
 
                 var.putAtt("long_name", varDesc.longName);
                 if (!varDesc.units.empty())

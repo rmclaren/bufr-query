@@ -89,7 +89,7 @@ class Encoder(bufr.encoders.EncoderBase):
 
         # Add the backing variables for the dimensions
         dim_group = root.create_group('dimensions')
-        for dim in dims:
+        for dim in dims.dims():
             dim_data = dim.labels
             dim_store = dim_group.create_dataset(dim, shape=[len(dim_data)], dtype=int)
             dim_store[:] = dim_data
