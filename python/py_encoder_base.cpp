@@ -68,6 +68,17 @@ namespace encoders {
                         const std::vector<std::string>& category) :
       EncoderDimensions(convertDims(dims), description, container, category) {}
 
+    std::vector<bufr::encoders::PyEncoderDimension> pyDims()
+    {
+      std::vector<bufr::encoders::PyEncoderDimension> pyDims;
+      for (const auto& dim : dims())
+      {
+        pyDims.push_back(*std::dynamic_pointer_cast<bufr::encoders::PyEncoderDimension>(dim));
+      }
+
+      return pyDims;
+    }
+
    private:
     std::vector<EncoderDimensionPtr> convertDims(const std::vector<PyEncoderDimensionPtr>& pyDims)
     {
@@ -104,6 +115,15 @@ namespace encoders {
 
       return {pyDims, description_, container, category};
     }
+
+    PyEncoderDimension pyFindNamedDimForPath(bufr::encoders::PyEncoderDimensions& dims,
+                                             const std::string& dim_path)
+    {
+      auto dim = EncoderBase::findNamedDimForPath(dims.dims(),
+                                                  dim_path);
+
+      return *std::dynamic_pointer_cast<bufr::encoders::PyEncoderDimension>(*dim);
+    }
   };
 }  // namespace encoders
 }  // namespace bufr
@@ -116,38 +136,12 @@ void setupEncoderBase(py::module& m)
     .def_readwrite("paths", &bufr::encoders::PyEncoderDimension::paths);
 
   py::class_<bufr::encoders::PyEncoderDimensions>(m, "EncoderDimensions")
-    .def("dims",
-          [](bufr::encoders::PyEncoderDimensions& self) -> std::vector<bufr::encoders::PyEncoderDimension>
-          {
-            std::vector<bufr::encoders::PyEncoderDimension> pyDims;
-            for (const auto& dim : self.dims())
-            {
-              pyDims.push_back(*std::dynamic_pointer_cast<bufr::encoders::PyEncoderDimension>(dim));
-            }
-            return pyDims;
-          });
+    .def("dims", &bufr::encoders::PyEncoderDimensions::pyDims);
 
   py::class_<bufr::encoders::PyEncoderBase>(m, "EncoderBase")
     .def(py::init<const std::string&>())
     .def(py::init<const bufr::encoders::Description&>())
     .def(py::init<const eckit::Configuration&>())
     .def("get_encoder_dimensions", &bufr::encoders::PyEncoderBase::pyGetEncoderDimensions)
-    .def("find_named_dim_for_path",
-         [](bufr::encoders::PyEncoderBase& self,
-            bufr::encoders::PyEncoderDimensions& dims,
-            const std::string& dim_path) -> bufr::encoders::PyEncoderDimension
-         {
-           auto dim = EncoderBase::findNamedDimForPath(dims.dims(),
-                                                       dim_path);
-
-           if (const auto pyDim =
-            std::dynamic_pointer_cast<bufr::encoders::PyEncoderDimension>(*dim))
-           {
-             return *pyDim;
-           }
-           else
-           {
-             throw eckit::BadParameter("Could not cast to PyEncoderDimension.");
-           }
-         });
+    .def("find_named_dim_for_path", &bufr::encoders::PyEncoderBase::pyFindNamedDimForPath);
 }
