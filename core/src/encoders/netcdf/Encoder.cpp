@@ -315,9 +315,6 @@ namespace netcdf {
                 dim->dimObj->write(std::make_shared<VarWriter<int>>(ncVar));
             }
 
-            const auto& varDimNameMap = dims.getVarDimNameMap();
-            const auto& varChunkMap = dims.getVarChunkMap();
-
             // Write all the other Variables
             std::set<std::string> groupNames;
             for (const auto &varDesc: description_.getVariables())
@@ -330,11 +327,12 @@ namespace netcdf {
                 }
 
                 auto group = file->getGroup(groupName);
+                auto chunks = dims.chunksForVar(varDesc.name);
                 auto var = createVarFromObj(dataContainer->get(varDesc.source, categories),
                                             group,
                                             varName,
-                                            dims.getVarDimNameMap().at(varDesc.name),
-                                            dims.getVarChunkMap().at(varDesc.name),
+                                            dims.dimNamesForVar(varDesc.name),
+                                            chunks,
                                             varDesc.compressionLevel);
 
                 var.putAtt("long_name", varDesc.longName);

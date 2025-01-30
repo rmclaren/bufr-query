@@ -29,9 +29,12 @@ class Encoder(bufr.encoders.EncoderBase):
                 cat_idx += 1
 
             root = zarr.open(self._make_path(output_path, substitutions), mode='w')
+            # Get the dimensions for the encoder
+            dims = self.get_encoder_dimensions(container, category)
+
             self._add_globals(root)
-            dims = self._add_dimensions(root, container, category)
-            self._add_datasets(root, container, dims, category)
+            self._add_dimensions(root, dims)
+            self._add_datasets(root, container, category, dims)
 
             # Close the zarr file
             root.store.close()
@@ -40,21 +43,22 @@ class Encoder(bufr.encoders.EncoderBase):
 
         return result
 
-    def _add_datasets(self, root:zarr.Group, container: bufr.DataContainer,
-                      dims:dict, category:[str]):
+    def _add_datasets(self, root:zarr.Group,
+                      container: bufr.DataContainer,
+                      category:[str],
+                      dims:bufr.encoders.EncoderDimensions):
+
         for var in self.description.get_variables():
             if var["source"] not in container.list():
                 raise ValueError(f'Variable {var["source"]} not found in the container')
 
             data = container.get(var['source'], category)
-
-            chunks = var['chunks'] if 'chunks' in var else None
             comp_level = var['compressionLevel'] if 'compressionLevel' in var else 3
 
             # Create the zarr dataset
             store = root.create_dataset(var['name'],
                                         shape=data.shape,
-                                        chunks=chunks,
+                                        chunks=dims.chunks_for_var(var['name']),
                                         dtype=data.dtype,
                                         compression='blosc',
                                         compression_opts=dict(cname='lz4',
@@ -73,35 +77,20 @@ class Encoder(bufr.encoders.EncoderBase):
                 store.attrs['valid_range'] = var['range']
 
             # Associate the dimensions
-            store.attrs['_ARRAY_DIMENSIONS'] = dims[var["source"]]
+            store.attrs['_ARRAY_DIMENSIONS'] = dims.dim_names_for_var(var["name"])
 
     def _add_globals(self, root:zarr.Group):
         # Adds globals as attributes to the root group
         for key, data in self.description.get_globals().items():
             root.attrs[key] = data
 
-    def _add_dimensions(self, root:zarr.Group,
-                        container: bufr.DataContainer,
-                        category:[str]) -> dict[str, list[str]]:
-
-        # Get the dimensions for the encoder
-        dims = self.get_encoder_dimensions(container, category)
-
+    def _add_dimensions(self, root:zarr.Group, dims:bufr.encoders.EncoderDimensions):
         # Add the backing variables for the dimensions
         dim_group = root.create_group('dimensions')
         for dim in dims.dims():
             dim_data = dim.labels
             dim_store = dim_group.create_dataset(dim, shape=[len(dim_data)], dtype=int)
             dim_store[:] = dim_data
-
-        # Map the dimensions to the container variables
-        var_dim_dict:dict[str, list[str]] = {}   # {var_name: [dim_name]}
-        for var_name in container.list():
-            var_dim_dict[var_name] = []
-            for path in container.get_paths(var_name, category):
-                var_dim_dict[var_name].append(self.find_named_dim_for_path(dims, path).name())
-
-        return var_dim_dict
 
     def _make_path(self, prototype_path:str, sub_dict:dict[str, str]):
         subs = re.findall(r'\{(?P<sub>\w+\/\w+)\}', prototype_path)

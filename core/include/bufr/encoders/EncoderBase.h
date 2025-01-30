@@ -56,8 +56,16 @@ namespace encoders {
 
       std::vector<EncoderDimensionPtr> dims() { return dims_; };
 
-      std::map<std::string, std::vector<std::string>> getVarDimNameMap() { return varDimNameMap_; }
-      std::map<std::string, std::vector<size_t>> getVarChunkMap() { return varChunkMap_; }
+      std::vector<std::string> dimNamesForVar(const std::string& varName) const
+      {
+        return varDimNameMap_.at(varName);
+      }
+
+      std::vector<size_t> chunksForVar(const std::string& varName) const
+      {
+        return varChunkMap_.at(varName);
+      }
+
       std::optional<EncoderDimensionPtr> findNamedDimForPath(const std::string& dim_path) const;
 
     private:

@@ -136,7 +136,9 @@ void setupEncoderBase(py::module& m)
     .def_readwrite("paths", &bufr::encoders::PyEncoderDimension::paths);
 
   py::class_<bufr::encoders::PyEncoderDimensions>(m, "EncoderDimensions")
-    .def("dims", &bufr::encoders::PyEncoderDimensions::pyDims);
+    .def("dims", &bufr::encoders::PyEncoderDimensions::pyDims)
+    .def("dim_names_for_var", &bufr::encoders::PyEncoderDimensions::dimNamesForVar)
+    .def("chunks_for_var", &bufr::encoders::PyEncoderDimensions::chunksForVar);
 
   py::class_<bufr::encoders::PyEncoderBase>(m, "EncoderBase")
     .def(py::init<const std::string&>())
