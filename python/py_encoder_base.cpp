@@ -93,8 +93,8 @@ namespace encoders {
       for (const auto& dim : dims.dims())
       {
         auto pyDim = std::make_shared<PyEncoderDimension>(dim->dimObj,
-                                                                          dim->description,
-                                                                          dim->paths);
+                                                          dim->description,
+                                                          dim->paths);
 
         auto labelWriter = std::make_shared<details::LabelWriter>(pyDim);
         dim->dimObj->write(labelWriter);
@@ -104,28 +104,6 @@ namespace encoders {
 
       return {pyDims, description_, container, category};
     }
-
-//    PyEncoderDimension pyFindNamedDimForPath(const PyEncoderDimensions& dims,
-//                                             const std::string& dim_path)
-//    {
-//      std::vector<EncoderDimensionPtr> eDims;
-//      for (const auto& dim : dims.dims())
-//      {
-//        eDims.push_back(std::make_shared<EncoderDimension>(dim));
-//      }
-//
-//      auto dim = findNamedDimForPath(eDims, dim_path);
-//      if (dim)
-//      {
-//        for (auto& pyDim : dims.dims())
-//        {
-//          if (pyDim.description.name == (*dim)->description.name)
-//          {
-//            return pyDim;
-//          }
-//        }
-//      }
-//    }
   };
 }  // namespace encoders
 }  // namespace bufr
@@ -159,33 +137,17 @@ void setupEncoderBase(py::module& m)
             bufr::encoders::PyEncoderDimensions& dims,
             const std::string& dim_path) -> bufr::encoders::PyEncoderDimension
          {
-           std::vector<EncoderDimensionPtr> eDims;
-           for (auto dim : dims.dims())
+           auto dim = EncoderBase::findNamedDimForPath(dims.dims(),
+                                                       dim_path);
+
+           if (const auto pyDim =
+            std::dynamic_pointer_cast<bufr::encoders::PyEncoderDimension>(*dim))
            {
-             eDims.push_back(std::make_shared<EncoderDimension>(dim->dimObj,
-                                                                dim->description,
-                                                                dim->paths));
+             return *pyDim;
            }
-
-           auto dim = EncoderBase::findNamedDimForPath(eDims, dim_path);
-           if (dim)
+           else
            {
-             for (auto dimPtr : dims.dims())
-             {
-               if (dimPtr->description.name == (*dim)->description.name)
-               {
-                 if (const auto pyDim =
-                   std::dynamic_pointer_cast<bufr::encoders::PyEncoderDimension>(dimPtr))
-                 {
-                   return *pyDim;
-                 }
-                 else
-                 {
-                   throw eckit::BadParameter("Could not cast to PyEncoderDimension.");
-                 }
-               }
-             }
-
+             throw eckit::BadParameter("Could not cast to PyEncoderDimension.");
            }
          });
 }
