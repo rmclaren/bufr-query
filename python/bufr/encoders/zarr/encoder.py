@@ -43,6 +43,19 @@ class Encoder(bufr.encoders.EncoderBase):
 
         return result
 
+    def _add_globals(self, root:zarr.Group):
+        # Adds globals as attributes to the root group
+        for key, data in self.description.get_globals().items():
+            root.attrs[key] = data
+
+    def _add_dimensions(self, root:zarr.Group, dims:bufr.encoders.EncoderDimensions):
+        # Add the backing variables for the dimensions
+        dim_group = root.create_group('dimensions')
+        for dim in dims.dims():
+            dim_data = dim.labels
+            dim_store = dim_group.create_dataset(dim, shape=[len(dim_data)], dtype=int)
+            dim_store[:] = dim_data
+
     def _add_datasets(self, root:zarr.Group,
                       container: bufr.DataContainer,
                       category:[str],
@@ -78,19 +91,6 @@ class Encoder(bufr.encoders.EncoderBase):
 
             # Associate the dimensions
             store.attrs['_ARRAY_DIMENSIONS'] = dims.dim_names_for_var(var["name"])
-
-    def _add_globals(self, root:zarr.Group):
-        # Adds globals as attributes to the root group
-        for key, data in self.description.get_globals().items():
-            root.attrs[key] = data
-
-    def _add_dimensions(self, root:zarr.Group, dims:bufr.encoders.EncoderDimensions):
-        # Add the backing variables for the dimensions
-        dim_group = root.create_group('dimensions')
-        for dim in dims.dims():
-            dim_data = dim.labels
-            dim_store = dim_group.create_dataset(dim, shape=[len(dim_data)], dtype=int)
-            dim_store[:] = dim_data
 
     def _make_path(self, prototype_path:str, sub_dict:dict[str, str]):
         subs = re.findall(r'\{(?P<sub>\w+\/\w+)\}', prototype_path)
