@@ -11,7 +11,7 @@ import bufr
 
 # Encoder for Zarr format
 class Encoder(bufr.encoders.EncoderBase):
-    def __init__(self, description: Union[str, bufr.encoders.Description]):
+    def __init__(self, description:Union[str, bufr.encoders.Description]):
         if isinstance(description, str):
             self.description = bufr.encoders.Description(description)
         else:
@@ -19,7 +19,7 @@ class Encoder(bufr.encoders.EncoderBase):
 
         super(Encoder, self).__init__(self.description)
 
-    def encode(self, container: bufr.DataContainer, output_path: str) -> dict[tuple[str],zarr.Group]:
+    def encode(self, container: bufr.DataContainer, output_path:str) -> dict[tuple[str],zarr.Group]:
         result:dict[tuple[str], zarr.Group] = {}
         for category in container.all_sub_categories():
             cat_idx = 0
@@ -105,4 +105,3 @@ class Encoder(bufr.encoders.EncoderBase):
         variable_name = components[1]
 
         return (group_name, variable_name)
-
