@@ -126,3 +126,19 @@ Here is a brief overview of the classes involved in the BUFR Query component (th
     :width: 100%
     :align: center
     :alt: Data Collection
+
+Encoder Base
+~~~~~~~~~~~~
+
+An encoder is the software component that takes the output (encoder) description and a DataContainer
+and generates an output file from them (such as NetCDF). To make their job easier Bufr-Query
+provides EncoderBase which provide some of the more difficult operations each encoder must implement
+(especially determining the named dimensions and how they apply to the variables).
+
+Here is a class diagram for encoder base and some of its supporting classes.
+
+.. image:: uml/BUFR_EncoderClassDiagram.png
+    :width: 100%
+    :align: center
+    :alt: Encoder Base
+

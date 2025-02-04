@@ -23,6 +23,7 @@ namespace
             const char* Path = "path";
             const char* Paths = "paths";
             const char* Source = "source";
+            const char* Labels = "labels";
         }  // Dimension
 
         namespace Variable
@@ -99,12 +100,17 @@ namespace encoders {
                 } else
                 {
                     throw eckit::BadParameter(
-                        R"(netcdf dimensions section must have either "path" or "paths".)");
+                        R"(dimensions section must have either "path" or "paths".)");
                 }
 
                 if (dimConf.has(ConfKeys::Dimension::Source))
                 {
                     dim.source = {dimConf.getString(ConfKeys::Dimension::Source)};
+                }
+
+                if (dimConf.has(ConfKeys::Dimension::Labels))
+                {
+                    dim.labels = dimConf.getString(ConfKeys::Dimension::Labels);
                 }
 
                 addDimension(dim);
@@ -228,6 +234,13 @@ namespace encoders {
 
     void Description::addDimension(const DimensionDescription &dim)
     {
+        if (!dim.source.empty() && !dim.labels.empty())
+        {
+            std::stringstream errStr;
+            errStr << "Dimension " << dim.name << " can not have both source and labels.";
+            throw eckit::BadParameter(errStr.str());
+        }
+
         dimensions_.push_back(dim);
     }
 
@@ -255,7 +268,8 @@ namespace encoders {
 
     void Description::addDimension(const std::string& name,
                                    const std::vector<std::string>& paths,
-                                   const std::string& source)
+                                   const std::string& source,
+                                   const std::string& labels)
     {
         DimensionDescription dim;
         dim.name = name;
@@ -267,8 +281,9 @@ namespace encoders {
         }
 
         dim.paths = pathQueries;
-
         dim.source = source;
+        dim.labels = labels;
+
         addDimension(dim);
     }
 

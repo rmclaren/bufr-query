@@ -44,6 +44,10 @@ namespace bufr {
 
   struct DimensionDataBase
   {
+    const std::string name;
+
+    DimensionDataBase() = delete;
+    DimensionDataBase(const std::string& dimName) : name(dimName) {}
     virtual ~DimensionDataBase() = default;
     virtual size_t size() = 0;
 
@@ -53,16 +57,21 @@ namespace bufr {
   template<typename T>
   struct DimensionData : public DimensionDataBase
   {
-    std::string name;
     std::vector<T> data;
 
     DimensionData() = delete;
 
     virtual ~DimensionData() = default;
 
-    explicit DimensionData(const std::string& dimname, size_t size) :
-        name(dimname),
-        data(std::vector<T>(size, _default()))
+    DimensionData(const std::string& dimName, size_t size) :
+      DimensionDataBase(dimName),
+      data(std::vector<T>(size, _default()))
+    {
+    }
+
+    DimensionData(const std::string& dimName, std::vector<T> dimData) :
+      DimensionDataBase(dimName),
+      data(dimData)
     {
     }
 
@@ -197,16 +206,6 @@ namespace bufr {
         }
 
         return index;
-      }
-
-      /// \brief Makes a new blank dimension scale with default type.
-      /// \param name The name of the dimension variable.
-      /// \param dimIdx The idx of the data dimension to use.
-      std::shared_ptr<DimensionDataBase> createEmptyDimension(const std::string& name,
-                                                              std::size_t dimIdx) const
-      {
-        auto dimData = std::make_shared<DimensionData<int>>(name, getDims()[dimIdx]);
-        return dimData;
       }
 
       // Setters

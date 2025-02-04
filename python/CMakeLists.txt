@@ -15,6 +15,7 @@ list (APPEND PYTHON_SRCS
   py_file.cpp
   py_parser.cpp
   py_data_cache.cpp
+	py_encoder_base.cpp
   py_encoder_description.cpp
   py_netcdf_encoder.cpp
   py_mpi.h

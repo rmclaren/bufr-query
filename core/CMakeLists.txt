@@ -29,6 +29,7 @@ list(APPEND BUFR_PUBLIC
 
 list (APPEND ENCODERS_PUBLIC
 	include/bufr/encoders/Description.h
+	include/bufr/encoders/EncoderBase.h
 	include/bufr/encoders/netcdf/Encoder.h
 )
 
@@ -99,6 +100,7 @@ list(APPEND BUFR_PRIVATE
 
 list (APPEND ENCODERS_PRIVATE
 	src/encoders/Description.cpp
+	src/encoders/EncoderBase.cpp
 	src/encoders/netcdf/Encoder.cpp
 )
 

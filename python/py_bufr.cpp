@@ -13,6 +13,7 @@ void setupParser(py::module& m);
 void setupFile(py::module& m);
 void setupQuerySet(py::module& m);
 void setupResultSet(py::module& m);
+void setupEncoderBase(py::module& m);
 void setupEncoderDescription(py::module& m);
 void setupNetcdfEncoder(py::module& m);
 void setupDataContainer(py::module& m);
@@ -36,6 +37,7 @@ PYBIND11_MODULE(bufr_python, m)
   setupMpi(mpi_m);
 
   auto encoder_m = m.def_submodule("encoders", "BUFR data Encoders");
+  setupEncoderBase(encoder_m);
   setupEncoderDescription(encoder_m);
 
   auto netcdf_encoder_m = encoder_m.def_submodule("netcdf", "NetCDF4 Encoder");

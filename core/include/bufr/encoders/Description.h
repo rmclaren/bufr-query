@@ -25,6 +25,7 @@ namespace encoders {
         std::string name;
         std::vector<Query> paths;
         std::string source;
+        std::string labels;
     };
 
     struct VariableDescription
@@ -90,8 +91,11 @@ namespace encoders {
     {
      public:
         Description() = default;
+
         explicit Description(const std::string& yamlFile);
         explicit Description(const eckit::Configuration& conf);
+
+        ~Description() = default;
 
         /// \brief Add Dimension defenition
         void addDimension(const DimensionDescription& dim);
@@ -105,7 +109,8 @@ namespace encoders {
         /// \brief Add a dimension element
         void addDimension(const std::string& name,
                            const std::vector<std::string>& paths,
-                           const std::string& source = "");
+                           const std::string& source = "",
+                           const std::string& labels = "");
 
         /// \brief Remove a dimension element
         void removeDimension(const std::string& name);
