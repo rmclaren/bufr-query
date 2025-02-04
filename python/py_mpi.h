@@ -15,6 +15,7 @@ namespace mpi {
     std::string name() { return comm_.name(); }
     eckit::mpi::Comm& getComm() { return comm_; }
     int rank() { return comm_.rank(); }
+    int size() { return comm_.size(); }
 
   private:
     eckit::mpi::Comm& comm_;

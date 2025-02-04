@@ -3,6 +3,7 @@ import sys
 
 import bufr
 from bufr.encoders import netcdf
+from bufr.encoders import zarr
 import numpy as np
 
 
@@ -277,6 +278,15 @@ def test_highlevel_cache():
     if bufr.DataCache.has(DATA_PATH, YAML_PATH):
         assert False, "Data Cache still contains entry."
 
+def test_zarr_encoder():
+    DATA_PATH = 'testdata/gdas.t18z.1bmhs.tm00.bufr_d'
+    YAML_PATH = 'testinput/bufrtest_mhs_basic_mapping.yaml'
+    OUTPUT_PATH = 'testrun/bufrtest_python_test.zarr'
+
+    container = bufr.Parser(DATA_PATH, YAML_PATH).parse()
+
+    dataset = next(iter(zarr.Encoder(YAML_PATH).encode(container, OUTPUT_PATH).values()))
+    assert abs(dataset['ObsValue/brightnessTemperature'][0,0] - 215.89) < 1e-3
 
 if __name__ == '__main__':
     # Low level interface tests
@@ -292,3 +302,7 @@ if __name__ == '__main__':
     test_highlevel_w_category()
     test_highlevel_cache()
     test_highlevel_append()
+
+    # Test Encoders
+    test_zarr_encoder()
+
