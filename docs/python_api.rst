@@ -131,6 +131,26 @@ that the Encoder writes it out to the ObsGroup.
 
           Add a new variable object to the output description
 
+      .. method:: remove_variable(field_name)
+
+          Remove a variable object from the output description
+
+      .. method:: add_dimension(dim_name, paths, source='')
+
+          Add a new dimension object to the output description
+
+      .. method:: remove_dimension(dim_name)
+
+            Remove a dimension object from the output description
+
+      .. method:: add_global(global_name, value)
+
+          Add a new global object to the output description
+
+      .. method:: remove_global(global_name)
+
+            Remove a global object from the output description
+
 
 So the code looks more like this:
 
