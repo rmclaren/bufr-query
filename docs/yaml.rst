@@ -184,6 +184,9 @@ The **encoder** section defines the ObsGroup objects that will be created. Here 
     dimension and be 1:1 with it.
   * **labels** *(optional)* Manually override the labels that are assigned to this dimension.
     The label is defined as a string pattern. Example: "1-5, 8" means 1, 2, 3, 4, 5, 8.
+.. warning::
+  Use either **source** or **labels** or neither of these.
+
 * **variables** List of output variable objects to create.
 
   * **name** standardized pathname **group**/**var_name**.
