@@ -53,7 +53,7 @@ class Encoder(bufr.encoders.EncoderBase):
         dim_group = root.create_group('dimensions')
         for dim in dims.dims():
             dim_data = dim.labels
-            dim_store = dim_group.create_dataset(dim, shape=[len(dim_data)], dtype=int)
+            dim_store = dim_group.create_dataset(dim.name(), shape=[len(dim_data)], dtype=int)
             dim_store[:] = dim_data
 
     def _add_datasets(self, root:zarr.Group,

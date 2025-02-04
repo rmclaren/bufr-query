@@ -22,10 +22,6 @@ namespace nc = netCDF;
 namespace bufr {
 namespace encoders {
 namespace netcdf {
-    static const char* LocationName = "Location";
-    static const char* DefualtDimName = "dim";
-
-
     template<typename T>
     struct is_vector : public std::false_type {};
 
