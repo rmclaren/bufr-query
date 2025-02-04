@@ -142,7 +142,8 @@ The **encoder** section defines the ObsGroup objects that will be created. Here 
         paths:
           - "*/BRIT"
           - "*/BRITCSTC"
-        source: variables/channels
+        source: variables/channels  # optional
+        labels: "1-5, 8, 10-20"  # optional
 
     variables:
       - name: "MetaData/dateTime"
@@ -181,6 +182,8 @@ The **encoder** section defines the ObsGroup objects that will be created. Here 
     to make sure it makes sense for the dimension and that it is made up of repeated
     values for each occurrence of the sequence. The source field must be inside the
     dimension and be 1:1 with it.
+  * **labels** *(optional)* Manually override the labels that are assigned to this dimension.
+    The label is defined as a string pattern. Example: "1-5, 8" means 1, 2, 3, 4, 5, 8.
 * **variables** List of output variable objects to create.
 
   * **name** standardized pathname **group**/**var_name**.
