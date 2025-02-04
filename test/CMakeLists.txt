@@ -86,6 +86,7 @@ list( APPEND test_input
   testinput/bufrtest_rtma_aircft_mapping.yaml
   testinput/bufrtest_rtma_aircft_NC004103_mapping.yaml
   testinput/bufrtest_wmo_amdar_multi_mapping.yaml
+  testinput/bufrtest_dim_labels_mapping.yaml
   testinput/bufrtest_fieldname_validation.py
   testinput/bufrtest_python_test.py
   testinput/bufrtest_python_mpi_test.py
@@ -513,6 +514,16 @@ ecbuild_add_test( TARGET  test_bufr_wmo_amdar_multi
                                                                  testrun/bufrtest_wmo_amdar_multi.nc
                                                                  -t testdata/bufr_tables"
                           bufrtest_wmo_amdar_multi.nc)
+
+ecbuild_add_test( TARGET  test_bufr_dim_labels
+                  TYPE    SCRIPT
+                  COMMAND bash
+                  ARGS    ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh
+                          netcdf
+                          "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x testdata/gdas.t00z.1bhrs4.tm00.bufr_d
+                                                                 testinput/bufrtest_dim_labels_mapping.yaml
+                                                                 testrun/bufrtest_hrs_basic.nc"
+  bufrtest_hrs_basic.nc)
 
 ecbuild_add_test( TARGET  test_bufr_show_queries_ncep
                   TYPE    SCRIPT

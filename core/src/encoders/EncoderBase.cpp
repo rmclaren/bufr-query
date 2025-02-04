@@ -245,9 +245,13 @@ namespace encoders {
       {
         labels = patternToDimLabels(descDim.labels);
 
-        if (labels.size() != getPathSize(container, paths, category))
+        const auto pathSize = getPathSize(container, paths, category);
+        if (labels.size() != pathSize)
         {
-          throw eckit::BadParameter("Number of labels does not match the length of the path.");
+          std::ostringstream errStr;
+          errStr << "The number of labels (" << pathSize << ") ";
+          errStr << "does not match the length of dimension \"" << descDim.name << "\".";
+          throw eckit::BadParameter(errStr.str());
         }
       }
       // Set labels to the default (all 0's)
@@ -314,21 +318,24 @@ namespace encoders {
 
   std::vector<int> EncoderBase::patternToDimLabels(const std::string& str) const
   {
-    static const std::regex validationRegex("\\[\\d+(\\-\\d+)?)(,\\d+(\\-\\d+)?)*\\]");
+    auto cleanedStr = str;
+    cleanedStr.erase(std::remove_if(cleanedStr.begin(), cleanedStr.end(), isspace),
+                     cleanedStr.end());
+    static const std::regex validationRegex(R"((\[)?\d+(-\d+)?(,\d+(-\d+)?)*(\])?)");
 
     std::vector<int> indices;
 
     // match index
     std::smatch matches;
-    if (std::regex_match(str, matches, validationRegex))
+    if (std::regex_match(cleanedStr, matches, validationRegex))
     {
       // regular expression pattern to match ranges and standalone numbers
-      static const std::regex pattern("(\\d+)-(\\d+)|(\\d+)");
+      static const std::regex pattern(R"((\d+)-(\d+)|(\d+))");
 
       std::smatch match;
 
       // iterate over all matches in the input string
-      for (auto it = std::sregex_iterator(str.begin(), str.end(), pattern);
+      for (auto it = std::sregex_iterator(cleanedStr.begin(), cleanedStr.end(), pattern);
            it != std::sregex_iterator(); ++it)
       {
         // check which capture group matched
