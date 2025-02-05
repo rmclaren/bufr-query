@@ -3,7 +3,7 @@
 Software Design
 ===============
 
-.. image:: uml/BUFR_BigPicture.png
+.. uml:: uml/BUFR_BigPicture.puml
     :width: 75%
     :align: center
     :alt: Big Picture
@@ -20,7 +20,7 @@ data fields (ex: turn YEAR, DAY, HOUR, MINU, SECO fields into proper date/time o
 
 The basic end-to-end process is illustrated in the following sequence diagram:
 
-.. image:: uml/BUFR_BigPictureSeq.png
+.. uml:: uml/BUFR_BigPictureSeq.puml
     :width: 75%
     :align: center
     :alt: Big Picture Sequence Diagram
@@ -38,7 +38,7 @@ The core idea of the Query component is to give access to specific data fields v
 the intrusive access into the NCEPLIB-bufr data structures). The process of taking a user provided query string and
 turning it into a Query is shown in the following sequence diagram:
 
-.. image:: uml/BUFR_CreateQuerySet.png
+.. uml:: uml/BUFR_CreateQuerySet.puml
     :width: 75%
     :align: center
     :alt: Create Query Set
@@ -67,7 +67,7 @@ we can go through the data and collect the targeted data into a DataFrame. The D
 target data for a specific subset variant (DataFields). These objects accumulate for each subset variant instance in the
 BUFR file (could be hundreds of thousands of them). The following sequence diagram demonstrates this process:
 
-.. image:: uml/BUFR_DataCollection.png
+.. uml:: uml/BUFR_DataCollection.puml
     :width: 100%
     :align: center
     :alt: Data Collection
@@ -122,7 +122,7 @@ Class Diagram
 
 Here is a brief overview of the classes involved in the BUFR Query component (there are a lot of details):
 
-.. image:: uml/BUFR_QueryClassDiagram.png
+.. uml:: uml/BUFR_QueryClassDiagram.puml
     :width: 100%
     :align: center
     :alt: Data Collection
@@ -137,7 +137,7 @@ provides EncoderBase which provide some of the more difficult operations each en
 
 Here is a class diagram for encoder base and some of its supporting classes.
 
-.. image:: uml/BUFR_EncoderClassDiagram.png
+.. uml:: uml/BUFR_EncoderClassDiagram.puml
     :width: 100%
     :align: center
     :alt: Encoder Base
