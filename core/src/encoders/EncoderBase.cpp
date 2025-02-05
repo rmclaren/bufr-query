@@ -41,7 +41,7 @@ namespace encoders {
         }
       }
 
-      // Check that datetime variable has the rite number of dimensions
+      // Check that datetime variable has the right number of dimensions
       if (var.name == "MetaData/dateTime" || var.name == "MetaData/datetime")
       {
         if (varDimNameMap[var.name].size() != 1)
