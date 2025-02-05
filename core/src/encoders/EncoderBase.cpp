@@ -46,8 +46,7 @@ namespace encoders {
       {
         if (varDimNameMap[var.name].size() != 1)
         {
-          throw eckit::BadParameter(
-            "Datetime variable must be one dimensional.");
+          throw eckit::BadParameter(var.name + " variable must be one dimensional.");
         }
       }
     }
@@ -222,7 +221,7 @@ namespace encoders {
                       dataObject->getDimPaths().back()) == descDim.paths.end())
         {
           std::stringstream errStr;
-          errStr << "netcdf::dimensions: Source field " << descDim.source << " in ";
+          errStr << "Source field " << descDim.source << " in ";
           errStr << descDim.name << " is not in the correct path.";
           throw eckit::BadParameter(errStr.str());
         }
