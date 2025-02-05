@@ -7,6 +7,7 @@
 #include "eckit/config/LocalConfiguration.h"
 #include <netcdf>
 
+#include "bufr/encoders/EncoderBase.h"
 #include "bufr/DataContainer.h"
 #include "bufr/encoders/Description.h"
 
@@ -17,7 +18,7 @@ namespace bufr {
 namespace encoders {
 namespace netcdf {
     /// \brief Uses netcdf::Description and parsed data to create NetCDF data.
-    class Encoder
+    class Encoder : public EncoderBase
     {
     public:
         struct Backend
@@ -32,10 +33,10 @@ namespace netcdf {
                 path(backendPath) {};
         };
 
+        Encoder() = delete;
+
         explicit Encoder(const std::string &yamlPath);
-
         explicit Encoder(const Description &description);
-
         explicit Encoder(const eckit::Configuration &conf);
 
         /// \brief Encode the data into an netcdf NcFile object
@@ -48,9 +49,6 @@ namespace netcdf {
 
     private:
         typedef std::map<std::vector<Query>, DimensionDescription> NamedPathDims;
-
-        /// \brief The description
-        const Description description_;
 
         /// \brief Create a string from a template string.
         /// \param prototype A template string ex: "my {dogType} barks". Sections labeled {__key__}

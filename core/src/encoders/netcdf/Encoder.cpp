@@ -22,10 +22,6 @@ namespace nc = netCDF;
 namespace bufr {
 namespace encoders {
 namespace netcdf {
-    static const char* LocationName = "Location";
-    static const char* DefualtDimName = "dim";
-
-
     template<typename T>
     struct is_vector : public std::false_type {};
 
@@ -173,7 +169,7 @@ namespace netcdf {
         {
             var = createVar(dblobj, group, name, dimNames, chunks, compressionLevel);
         }
-        else if (auto intobj = std::dynamic_pointer_cast<DataObject<int32_t >>(object))
+        else if (auto intobj = std::dynamic_pointer_cast<DataObject<int32_t>>(object))
         {
             var = createVar(intobj, group, name, dimNames, chunks, compressionLevel);
         }
@@ -202,18 +198,15 @@ namespace netcdf {
         return var;
     }
 
-    Encoder::Encoder(const std::string &yamlPath) :
-        description_(Description(yamlPath))
+    Encoder::Encoder(const std::string &yamlPath) : EncoderBase(yamlPath)
     {
     }
 
-    Encoder::Encoder(const Description &description) :
-        description_(description)
+    Encoder::Encoder(const Description &description) : EncoderBase(description)
     {
     }
 
-    Encoder::Encoder(const eckit::Configuration &conf) :
-        description_(Description(conf))
+    Encoder::Encoder(const eckit::Configuration &conf) : EncoderBase(conf)
     {
     }
 
@@ -226,57 +219,9 @@ namespace netcdf {
 
         std::map<SubCategory, std::shared_ptr<nc::NcFile>> obsGroups;
 
-        // Get the named dimensions
-        NamedPathDims namedLocDims;
-        NamedPathDims namedExtraDims;
-
-        // Get a list of all the named dimensions
-        {
-            std::set<std::string> dimNames;
-            std::set<Query> dimPaths;
-            for (const auto &dim: description_.getDims())
-            {
-                if (dimNames.find(dim.name) != dimNames.end())
-                {
-                    throw eckit::UserError("dimensions: Duplicate dimension name: "
-                                           + dim.name);
-                }
-
-                dimNames.insert(dim.name);
-
-                // Validate the dimension paths so that we don't have duplicates and they all start
-                // with a *.
-                for (auto path: dim.paths)
-                {
-                    if (dimPaths.find(path) != dimPaths.end())
-                    {
-                        throw eckit::BadParameter("dimensions: Declared duplicate dim. path: "
-                                                  + path.str());
-                    }
-
-                    if (path.str().substr(0, 1) != "*")
-                    {
-                        std::ostringstream errStr;
-                        errStr << "dimensions: ";
-                        errStr << "Path " << path.str() << " must start with *. ";
-                        errStr << "Subset specific named dimensions are not supported.";
-
-                        throw eckit::BadParameter(errStr.str());
-                    }
-
-                    dimPaths.insert(path);
-                }
-
-                namedExtraDims.insert({dim.paths, dim});
-            }
-        }
-
         // Got through each unique category
         for (const auto &categories: dataContainer->allSubCategories())
         {
-            // Create the dimensions variables
-            std::map<std::string, std::shared_ptr<DimensionDataBase>> dimMap;
-
             auto dataObjectGroupBy = dataContainer->getGroupByObject(
                 description_.getVariables()[0].source, categories);
 
@@ -295,80 +240,6 @@ namespace netcdf {
                 }
 
                 log::warning() << ") was not found in file." << std::endl;
-            }
-
-            // Create the root Location dimension for this category
-            auto rootDim = std::make_shared<DimensionData<int>>(LocationName,
-                                                                dataObjectGroupBy->getDims()[0]);
-            dimMap[LocationName] = rootDim;
-
-            // Add the root Location dimension as a named dimension
-            auto rootLocation = DimensionDescription();
-            rootLocation.name = LocationName;
-            rootLocation.source = "";
-            namedLocDims[{dataObjectGroupBy->getDimPaths()[0]}] = rootLocation;
-
-            // Create the dimension data for dimensions which include source data
-            for (const auto &dimDesc: description_.getDims())
-            {
-                if (!dimDesc.source.empty())
-                {
-                    auto dataObject = dataContainer->get(dimDesc.source, categories);
-
-                    // Validate the path for the source field makes sense for the dimension
-                    if (std::find(dimDesc.paths.begin(),
-                                  dimDesc.paths.end(),
-                                  dataObject->getDimPaths().back()) == dimDesc.paths.end())
-                    {
-                        std::stringstream errStr;
-                        errStr << "netcdf::dimensions: Source field " << dimDesc.source << " in ";
-                        errStr << dimDesc.name << " is not in the correct path.";
-                        throw eckit::BadParameter(errStr.str());
-                    }
-
-                    // Create the dimension data
-                    dimMap[dimDesc.name] = dataObject->createDimensionFromData(
-                        dimDesc.name,
-                        dataObject->getDimPaths().size() - 1);
-                }
-            }
-
-            // Discover and create the dimension data for dimensions with no source field. If
-            // dim is un-named (not listed) then call it dim_<number>
-            int autoGenDimNumber = 2;
-            for (const auto &varDesc: description_.getVariables())
-            {
-                auto dataObject = dataContainer->get(varDesc.source, categories);
-
-                for (std::size_t dimIdx = 1; dimIdx < dataObject->getDimPaths().size(); dimIdx++)
-                {
-                    auto dimPath = dataObject->getDimPaths()[dimIdx];
-                    std::string dimName = "";
-
-                    if (existsInNamedPath(dimPath, namedExtraDims))
-                    {
-                        dimName = dimForDimPath(dimPath, namedExtraDims).name;
-                    }
-                    else
-                    {
-                        auto newDimStr = std::ostringstream();
-                        newDimStr << DefualtDimName << "_" << autoGenDimNumber;
-
-                        dimName = newDimStr.str();
-
-                        auto dimDesc = DimensionDescription();
-                        dimDesc.name = dimName;
-                        dimDesc.source = "";
-
-                        namedExtraDims[{dimPath}] = dimDesc;
-                        autoGenDimNumber++;
-                    }
-
-                    if (dimMap.find(dimName) == dimMap.end())
-                    {
-                        dimMap[dimName] = dataObject->createEmptyDimension(dimName, dimIdx);
-                    }
-                }
             }
 
             // Make the categories
@@ -431,68 +302,13 @@ namespace netcdf {
             }
 
             // Add Dimensions
-            for (auto dimPair: dimMap)
+            auto dims = getEncoderDimensions(dataContainer, categories);
+            for (auto dim: dims.dims())
             {
-                const auto& dim = file->addDim(dimPair.first, dimPair.second->size());
-                auto dimVar = file->addVar(dimPair.first, nc::NcType::nc_INT, dim);
-                addAttribute(dimVar, _FillValue, DataObject<int>::missingValue());
-                dimPair.second->write(std::make_shared<VarWriter<int>>(dimVar));
-            }
-
-            for (const auto& dimDesc : description_.getDims())
-            {
-                if (!dimDesc.source.empty())
-                {
-                    auto dataObject = dataContainer->get(dimDesc.source, categories);
-
-                    if (dataObject->size() == 0)
-                    {
-                        log::warning() << "Dimension source ";
-                        log::warning() << dimDesc.source;
-                        log::warning() << " has no data for category (";
-                        for (auto category: categories)
-                        {
-                          log::warning() << category;
-
-                          if (category != categories.back())
-                          {
-                            log::warning() << ", ";
-                          }
-                        }
-                        log::warning() << ")" << std::endl;
-
-                        continue;
-                    }
-
-                    for (size_t dimIdx = 0; dimIdx < dataObject->getDims().size(); dimIdx++)
-                    {
-                        auto dimPath = dataObject->getDimPaths()[dimIdx];
-
-                        NamedPathDims namedPathDims;
-                        if (dimIdx == 0)
-                        {
-                            namedPathDims = namedLocDims;
-                        }
-                        else
-                        {
-                            namedPathDims = namedExtraDims;
-                        }
-
-                        auto dimName = dimForDimPath(dimPath, namedPathDims).name;
-                        auto dimVar = file->getVar(dimName);
-
-                        if (const auto obj = std::dynamic_pointer_cast<DataObject<int>>(dataObject))
-                        {
-                            dimVar.putVar(obj->getRawData().data());
-                        }
-                        else
-                        {
-                            throw eckit::BadParameter("Dimension data type not supported.");
-                        }
-
-                        dimMap[dimName]->write(std::make_shared<VarWriter<int>>(dimVar));
-                    }
-                }
+                const auto& ncDim = file->addDim(dim->dimObj->name, dim->dimObj->size());
+                auto ncVar = file->addVar(dim->dimObj->name, nc::NcType::nc_INT, ncDim);
+                addAttribute(ncVar, _FillValue, DataObject<int>::missingValue());
+                dim->dimObj->write(std::make_shared<VarWriter<int>>(ncVar));
             }
 
             // Write all the other Variables
@@ -507,59 +323,11 @@ namespace netcdf {
                 }
 
                 auto group = file->getGroup(groupName);
-                std::vector<size_t> chunks = {};
-                auto dimNames = std::vector<std::string>();
-                auto dataObject = dataContainer->get(varDesc.source, categories);
-                for (size_t dimIdx = 0; dimIdx < dataObject->getDims().size(); dimIdx++)
-                {
-                    auto dimPath = dataObject->getDimPaths()[dimIdx];
-
-                    NamedPathDims namedPathDims;
-                    if (dimIdx == 0)
-                    {
-                        namedPathDims = namedLocDims;
-                    } else
-                    {
-                        namedPathDims = namedExtraDims;
-                    }
-
-                    dimNames.push_back(dimForDimPath(dimPath, namedPathDims).name);
-
-                    auto dimVar = group.getVar(dimForDimPath(dimPath, namedPathDims).name);
-
-                    auto dimChunk = static_cast<size_t>(dataObject->getDims()[dimIdx]);
-                    auto chunkMode = nc::NcVar::ChunkMode::nc_CHUNKED;
-                    if (!dimVar.isNull())
-                    {
-                      std::vector<size_t> varChunks;
-                      dimVar.getChunkingParameters(chunkMode, varChunks);
-                      dimChunk = varChunks[dimIdx];
-                    }
-
-                    if (dimIdx < varDesc.chunks.size())
-                    {
-                      chunks.push_back(std::min(dimChunk, varDesc.chunks[dimIdx]));
-                    }
-                    else
-                    {
-                      chunks.push_back(dimChunk);
-                    }
-                }
-
-                // Check that dateTime variable has the right dimensions
-                if (varDesc.name == "MetaData/dateTime" || varDesc.name == "MetaData/datetime")
-                {
-                    if (dimNames.size() != 1)
-                    {
-                        throw eckit::BadParameter(
-                            "Datetime variable must be one dimensional.");
-                    }
-                }
-
-                auto var = createVarFromObj(dataObject,
+                auto chunks = dims.chunksForVar(varDesc.name);
+                auto var = createVarFromObj(dataContainer->get(varDesc.source, categories),
                                             group,
                                             varName,
-                                            dimNames,
+                                            dims.dimNamesForVar(varDesc.name),
                                             chunks,
                                             varDesc.compressionLevel);
 

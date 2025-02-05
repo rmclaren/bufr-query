@@ -1,0 +1,57 @@
+@startuml
+skinparam dpi 300
+scale 1024 width
+
+struct EncoderDimension
+{
+  +dimObj:DimensionDataBase
+  +description:DimensionDescription
+  +paths:vector<string>
+}
+
+class EncoderDimensions
+{
+  -dims:std::vector<EncoderDimension>
+  -varDimNameMap_:map<string, vector<string>>
+  -varChunkMap_:map<string, vector<size_t>>
+  +dims():vector<EncoderDimension>
+  +dimNamesForVar(varName:string) : vector<string>
+  +chunksForVar(varName:string) : vector<size_t>
+}
+
+class EncoderBase
+{
+  #description_
+  +EncoderBase(yamlPath:string)
+  +EncoderBase(description:Description)
+  +EncoderBase(conf:Configuration)
+  #findNamedDimForPath(vector<EncoderDimension>:dims, dimPath:string)
+  #getEncoderDimensions(container:DataContainer, category:vector<string>) : EncoderDimensions
+}
+
+package zarr <<Folder>>
+{
+  class Encoder
+  {
+    +encode(data:DataContainer)
+  }
+
+  EncoderBase<|--Encoder
+}
+
+package netcdf <<Folder>>
+{
+  class Encoder
+  {
+    +encode(data:DataContainer, backend:Backend)
+  }
+
+  EncoderBase<|--Encoder
+}
+
+EncoderDimensions *-- EncoderDimension
+EncoderBase -> EncoderDimensions
+
+
+
+@enduml

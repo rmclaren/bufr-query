@@ -30,10 +30,10 @@ def test_mpi_basic():
 
 
 def test_mpi_categories():
-    DATA_PATH = 'testdata/gdas.t12z.mtiasi.tm00.bufr_d'
-    YAML_PATH = 'testinput/bufrtest_mtiasi_mapping.yaml'
-    OUTPUT_PATH = 'testrun/bufrtest_mtiasi_{splits/satId}_cats.nc'
-    COMP_PATH = 'testoutput/bufrtest_mtiasi_metop-c.nc'
+    DATA_PATH = 'testdata/gdas.t12z.esmhs.tm00.bufr_d'
+    YAML_PATH = 'testinput/bufrtest_esmhs_mapping.yaml'
+    OUTPUT_PATH = 'testrun/bufrtest_esmhs_{splits/satId}_cats.nc'
+    COMP_PATH = 'testoutput/bufrtest_esmhs_noaa-19.nc'
 
     bufr.mpi.App(sys.argv) # Don't do this if passing in MPI communicator
     comm = bufr.mpi.Comm("world")
@@ -43,25 +43,25 @@ def test_mpi_categories():
 
     if comm.rank() == 0:
         netcdf.Encoder(YAML_PATH).encode(container, OUTPUT_PATH)
-        run_compare('testrun/bufrtest_mtiasi_metop-c_cats.nc', COMP_PATH)
+        run_compare('testrun/bufrtest_esmhs_noaa-19_cats.nc', COMP_PATH)
 
 
 def test_mpi_sub_container():
-    DATA_PATH = 'testdata/gdas.t12z.mtiasi.tm00.bufr_d'
-    YAML_PATH = 'testinput/bufrtest_mtiasi_mapping.yaml'
-    OUTPUT_PATH = 'testrun/bufrtest_mtiasi_{splits/satId}_sub_container.nc'
-    COMP_PATH = 'testoutput/bufrtest_mtiasi_metop-c.nc'
+    DATA_PATH = 'testdata/gdas.t12z.esmhs.tm00.bufr_d'
+    YAML_PATH = 'testinput/bufrtest_esmhs_mapping.yaml'
+    OUTPUT_PATH = 'testrun/bufrtest_esmhs_{splits/satId}_sub_container.nc'
+    COMP_PATH = 'testoutput/bufrtest_esmhs_noaa-19.nc'
 
     bufr.mpi.App(sys.argv) # Don't do this if passing in MPI communicator
     comm = bufr.mpi.Comm("world")
 
     container = bufr.Parser(DATA_PATH, YAML_PATH).parse(comm)
-    container = container.get_sub_container(['metop-c'])
+    container = container.get_sub_container(['noaa-19'])
     container.gather(comm)
 
     if comm.rank() == 0:
         netcdf.Encoder(YAML_PATH).encode(container, OUTPUT_PATH)
-        run_compare('testrun/bufrtest_mtiasi_metop-c_sub_container.nc', COMP_PATH)
+        run_compare('testrun/bufrtest_esmhs_noaa-19_sub_container.nc', COMP_PATH)
 
 
 def test_mpi_all_gather():

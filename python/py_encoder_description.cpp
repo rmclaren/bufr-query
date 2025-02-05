@@ -61,11 +61,13 @@ void setupEncoderDescription(py::module& m)
    .def("add_dimension",
          static_cast<void (Description::*)(const std::string&,
                                          const std::vector<std::string>&,
+                                           const std::string&,
                                          const std::string&)>(&Description::addDimension),
         py::arg("name"),
         py::arg("paths"),
         py::arg("source") = "",
-        "Add a dimension to the description.")
+        py::arg("labels") = "",
+          "Add a dimension to the description.")
    .def("remove_dimension", &Description::removeDimension,
         py::arg("name"),
         "Remove a dimension from the description.")

@@ -88,7 +88,8 @@ namespace mpi {
       auto backend = encoders::netcdf::Encoder::Backend(false, outputFile);
 
       auto encoderConf = yaml->getSubConfiguration("encoder");
-      encoders::netcdf::Encoder(encoderConf).encode(data, backend);
+      auto e = encoders::netcdf::Encoder(encoderConf);
+      e.encode(data, backend);
     }
     else
     {
