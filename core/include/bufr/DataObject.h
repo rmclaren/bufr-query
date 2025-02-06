@@ -201,6 +201,16 @@ namespace bufr {
         return index;
       }
 
+      /// \brief Makes a new blank dimension scale with default type.
+      /// \param name The name of the dimension variable.
+      /// \param dimIdx The idx of the data dimension to use.
+      std::shared_ptr<DimensionDataBase> createEmptyDimension(const std::string& name,
+                                                              std::size_t dimIdx) const
+      {
+        auto dimData = std::make_shared<DimensionData<int>>(name, getDims()[dimIdx]);
+        return dimData;
+      }
+
       // Setters
       void setFieldName(const std::string& fieldName);
       void setGroupByFieldName(const std::string& fieldName);
