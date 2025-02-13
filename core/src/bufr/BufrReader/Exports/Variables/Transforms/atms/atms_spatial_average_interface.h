@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-  void ATMS_Spatial_Average_f(int num_loc, int nchanl, void* time, void* fov, void* channel,
+  void ATMS_Spatial_Average_f(int num_loc, int nchanl, void* time, void* fov, void* slnm, void* channel,
                               void* btobs, void* scanline, int* error_status);
 
 #ifdef __cplusplus

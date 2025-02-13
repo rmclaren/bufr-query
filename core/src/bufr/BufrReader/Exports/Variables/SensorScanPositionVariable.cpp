@@ -59,7 +59,7 @@ namespace bufr {
 
         // Declare and initialize scanline array
         // scanline has the same dimension as fovn
-        std::vector<int> scanpos(fovnObj->size(), DataObject<float>::missingValue());
+        std::vector<int> scanpos(fovnObj->size(), DataObject<int>::missingValue());
 
         // Get field-of-view number
         std::vector<int> fovn(fovnObj->size(), DataObject<int>::missingValue());

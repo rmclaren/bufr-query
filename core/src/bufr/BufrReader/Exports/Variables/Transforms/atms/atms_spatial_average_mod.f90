@@ -26,12 +26,13 @@ Module ATMS_Spatial_Average_Mod
 
 CONTAINS 
 
-  SUBROUTINE ATMS_Spatial_Average(num_loc, nchanl, time, fov, channel, bt_inout, scanline, Error_Status)
+  SUBROUTINE ATMS_Spatial_Average(num_loc, nchanl, time, fov, slnm, channel, bt_inout, scanline, Error_Status)
     IMPLICIT NONE
     
     ! Declare passed variables
     integer(i_kind),          intent(in   ) :: num_loc, nchanl 
     integer(i_kind),          intent(in   ) :: fov(num_loc)
+    integer(i_kind),          intent(in   ) :: slnm(num_loc)
     integer(i_kind),          intent(in   ) :: channel(nchanl*num_loc)
     integer(i_llong),         intent(in   ) :: time(num_loc)
     integer(i_kind),          intent(inout) :: scanline(num_loc)
@@ -49,7 +50,7 @@ CONTAINS
     integer(i_kind), parameter :: atms1c_h_wmosatid = 224
     integer(i_kind), parameter :: lninfile = 15
     integer(i_kind), parameter :: max_fov = 96
-    real(r_kind), parameter    :: scan_interval = 8.0_r_kind/3.0_r_kind
+    real(r_double), parameter  :: scan_interval = 8000.0_r_kind/3.0_r_kind ! unit: milliseconds
 
     ! Maximum number of channels 
     integer(i_kind), parameter :: maxchans = 22
@@ -74,8 +75,10 @@ CONTAINS
     ! Declare local variables
     character(30) :: cline
 
+    integer(i_llong):: mintime
+    integer(i_kind) :: ipos 
     integer(i_kind) :: i, iscan, ifov, ichan, nchannels, wmosatid, version
-    integer(i_kind) :: ios, max_scan, mintime
+    integer(i_kind) :: ios, max_scan
     integer(i_kind) :: nxaverage(nchanl), nyaverage(nchanl)
     integer(i_Kind) :: channelnumber(nchanl),qc_dist(nchanl)
     integer(i_kind), allocatable ::  scanline_back(:,:)
@@ -137,28 +140,28 @@ CONTAINS
 
        ! Print out for checking and debugging
        if (do_output_check) then
-          write(6,102) 'iobs', 'iloc', 'time', 'fov', 'ichn', 'channel', 'bt_obs'
+          write(6,102) 'iobs', 'iloc', 'time', 'fov', 'slnm', 'ichn', 'channel', 'bt_obs'
           iobs = 1 
           do iloc = 1, num_loc
              do ichn = 1, nchanl 
-                write(6,101) iobs, iloc, time(iloc), fov(iloc), ichn, channel_number(ichn,iloc), bt_obs(ichn,iloc)
+                write(6,101) iobs, iloc, time(iloc), fov(iloc), slnm(iloc), ichn, channel_number(ichn,iloc), bt_obs(ichn,iloc)
                 iobs = iobs+1
              enddo
           enddo
-101       format(i12,2x,i12,2x,i20,2x,3(i12,2x),f15.8)
-102       format(a12,2x,a12,2x,a20,2x,3(a12,2x),a15)
+101       format(i12,2x,i12,2x,i20,2x,4(i12,2x),f15.8)
+102       format(a12,2x,a12,2x,a20,2x,4(a12,2x),a15)
        endif
        write(6,*) 'minval/maxval bt_obs = ', minval(bt_obs), maxval(bt_obs)
 
        if (do_output_check) then
-          write(6,202) 'iobs', 'iloc', 'time', 'fov', 'ichn', 'channel', 'bt_inout'
+          write(6,202) 'iobs', 'iloc', 'time', 'fov', 'slnm', 'ichn', 'channel', 'bt_inout'
           do iobs = 0, num_loc*nchanl-1 
              iloc = int(iobs/nchanl)
              ichn = int(mod(iobs,nchanl)) 
-             write(6,201) iobs+1, iloc+1, time(iloc+1), fov(iloc+1), ichn+1, channel(iobs+1), bt_inout(iobs+1)
+             write(6,201) iobs+1, iloc+1, time(iloc+1), fov(iloc+1), slnm(iloc+1), ichn+1, channel(iobs+1), bt_inout(iobs+1)
           enddo 
-201       format(i12,2x,i12,2x,i20,2x,3(i12,2x),f15.8)
-202       format(a12,2x,a12,2x,a20,2x,3(a12,2x),a15)
+201       format(i12,2x,i12,2x,i20,2x,4(i12,2x),f15.8)
+202       format(a12,2x,a12,2x,a20,2x,4(a12,2x),a15)
        endif
        write(6,*) 'minval/maxval bt_inout = ', minval(bt_inout), maxval(bt_inout)
 
@@ -237,22 +240,79 @@ CONTAINS
     ! Determine scanline from time
     mintime = minval(time)
     scanline(:)   = nint((time(1:num_loc)-mintime)/scan_interval)+1
+!   scanline(:)   = nint((float(time(1:num_loc)-mintime))/scan_interval)+1
     Max_Scan=maxval(scanline)
-    write(6,*) 'ATMS_Spatial_Average: minval/maxval scanline = ', &
-                minval(scanline), maxval(scanline)
+    if (do_output_check) then
+       write(6,*) 'ATMS_Spatial_Average: time = ', time(1), time(2), time(num_loc) 
+       write(6,*) 'ATMS_Spatial_Average: mintime = ', mintime, minval(time), maxval(time)
+       write(6,*) 'ATMS_Spatial_Average: scan_interval = ', scan_interval 
+       write(6,*) 'ATMS_Spatial_Average: minval/maxval scanline = ', &
+                   minval(scanline), maxval(scanline)
+    endif
 
     allocate(bt_image(max_fov, max_scan, nchanl))
     allocate(scanline_back(max_fov, max_scan))
     bT_image(:,:,:) = 1000.0_r_kind
 
+    if (do_output_check) then
+       write(6,*) 'Checking original number of obs and scanline ... '
+       write(6,*) 'num_loc  = ', num_loc
+       write(6,*) 'max_fov  = ', max_fov
+       write(6,*) 'max_scan = ', max_scan
+       write(6, 301) 'nobs', 'fov', 'slnm', 'slnm_c', 'bt_obs' 
+    endif
     scanLine_back(:,:) = -1
     do i = 1, num_loc
        bt_image(fov(i),scanline(i),:) = bt_obs(:,i)
        scanline_back(fov(i),scanline(i)) = i
        if (do_output_check) &
-          write(6, 301) fov(i), scanline(i), bt_image(fov(i), scanline(i), 1:nchanl) 
+          write(6, 300) i, fov(i), slnm(i), scanline(i), bt_image(fov(i), scanline(i), 1:nchanl) 
     end do 
-301 format(i6,2x,i6,2x,22(f8.3))
+300 format(4(i6,2x),22(f8.3))
+301 format(4(a6,2x),a12)
+
+
+    if (do_output_check) then
+       write(6,*) 'Checking original number of obs and scanline (with time) ... '
+       write(6,*) 'num_loc  = ', num_loc
+       write(6,*) 'max_fov  = ', max_fov
+       write(6,*) 'max_scan = ', max_scan
+       write(6,*) 'mintime  = ', mintime 
+       write(6,*) 'scan_interval (si) = ', scan_interval 
+       write(6, 401) 'nobs', 'fov', 'slnm', 'slnm_c', 'time', 'time_min', 'dt', 'dt/si', 'int(dt/si)', 'int(dt/dts)+1'  
+       do i = 1, num_loc
+          write(6, 400) i, fov(i), slnm(i), scanline(i), time(i), mintime, &
+                                                time(i)-mintime, &
+                                                (time(i)-mintime)/scan_interval, &  
+                                                nint((time(i)-mintime)/scan_interval), & 
+                                                nint((time(i)-mintime)/scan_interval)+1 
+       enddo
+400    format(4(i6,2x),3(i20,2x),es25.18,2x,2(i12,2x))
+401    format(4(a6,2x),3(a20,2x),a25,2x,2(a12,2x))
+
+       write(6,*) 'Checking bt_image (image map) ... '
+       write(6,*) 'num_loc  = ', num_loc
+       write(6,*) 'max_fov  = ', max_fov
+       write(6,*) 'max_scan = ', max_scan
+       iobs = 0
+       write(6, 501) 'nobs', 'iscan', 'ifov', 'ipos', 'slnm_c', 'slnm', 'fov', 'bt_img'  
+       do iscan = 1, max_scan
+          do ifov = 1, max_fov
+             iobs = iobs + 1
+             ipos = scanline_back(ifov,iscan)
+             if (scanline_back(ifov,iscan) >  0) then
+                write(6,500) iobs, iscan, ifov, ipos, scanline(ipos), slnm(ipos), fov(ipos), &
+                               bt_image(ifov,iscan,1:nchanl)
+             else
+                write(6,500) iobs, iscan, ifov, ipos, -1, -1, -1, bt_image(ifov,iscan,1:nchanl)
+             endif
+          enddo
+       enddo
+500    format(4(i6,2x), 3(i8,2x), 22(f12.3))
+501    format(4(a6,2x), 3(a8,2x), a12)
+       write(6,*) 'ATMS_Spatial_Average: minval/maxval bt_obs   = ', minval(bt_obs), maxval(bt_obs)
+       write(6,*) 'ATMS_Spatial_Average: minval/maxval bt_image = ', minval(bt_image), maxval(bt_image)
+    endif
 
     ! Do FFT transform
     DO ichan = 1, nchanl

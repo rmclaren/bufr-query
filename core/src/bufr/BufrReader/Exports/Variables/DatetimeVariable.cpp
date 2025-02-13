@@ -28,6 +28,7 @@ namespace
         const char* Minute = "minute";
         const char* Second = "second";
         const char* HoursFromUtc = "hoursFromUtc";
+        const char* Units = "units";
     }  // namespace ConfKeys
 }  // namespace
 
@@ -83,14 +84,25 @@ namespace bufr {
       throw eckit::BadParameter(errStr.str());
     }
 
+    // Set default unit for second
+    std::string units = "seconds";
+    if (conf_.has(ConfKeys::Units))
+    {
+        units = conf_.getString(ConfKeys::Units);
+        if (units != "seconds" && units != "milliseconds") {
+            std::ostringstream errStr;
+            errStr << "The unit of Datetime is either seconds (default) or milliseconds.";
+             throw eckit::BadParameter(errStr.str());
+        }
+    }
+
     for (unsigned int idx = 0; idx < map.at(getExportKey(ConfKeys::Year))->size(); idx++) {
       int year    = map.at(getExportKey(ConfKeys::Year))->getAsInt(idx);
       int month   = map.at(getExportKey(ConfKeys::Month))->getAsInt(idx);
       int day     = map.at(getExportKey(ConfKeys::Day))->getAsInt(idx);
       int hour    = map.at(getExportKey(ConfKeys::Hour))->getAsInt(idx);
       int minutes = 0;
-      int seconds = 0;
-
+      float seconds = 0.0;
       auto diff_time = DataObject<int64_t>::missingValue();
       if (year != missingInt && month != missingInt && day != missingInt && hour != missingInt) {
         tm.tm_year  = year - 1900;
@@ -110,10 +122,10 @@ namespace bufr {
         }
 
         if (!secondQuery_.empty()) {
-          seconds = map.at(getExportKey(ConfKeys::Second))->getAsInt(idx);
+          seconds = map.at(getExportKey(ConfKeys::Second))->getAsFloat(idx);
 
           if (seconds >= 0 && seconds < 60) {
-            tm.tm_sec = seconds;
+            tm.tm_sec = static_cast<int>(seconds);
           }
         }
 
@@ -125,6 +137,10 @@ namespace bufr {
         }
 
         diff_time = static_cast<int64_t>(difftime(thisTime, epochDt) + hoursFromUtc_ * 3600);
+	if (units == "milliseconds") {
+      	    diff_time = diff_time * 1000 +
+		        static_cast<int64_t>((seconds - std::floor(seconds)) * 1000);
+        }
       }
 
       timeOffsets.push_back(diff_time);
@@ -214,6 +230,7 @@ namespace bufr {
       QueryInfo info;
       info.name         = getExportKey(ConfKeys::Second);
       info.query        = secondQuery_;
+      info.type         = "float";
       info.groupByField = groupByField_;
       queries.push_back(info);
     }
