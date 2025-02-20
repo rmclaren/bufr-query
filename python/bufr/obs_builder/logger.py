@@ -5,6 +5,11 @@ try:
 except ImportError:
     raise ImportError('wxflow was not found. Cant make logger objects.')
 
+# Initialize Logger
+# Get log level from the environment variable, default to 'INFO it not set
+log_level = os.getenv('LOG_LEVEL', 'INFO')
+logger = Logger('obs_builder', level=log_level, colored_log=False)
+
 def logging(comm, level, message):
     if comm.rank() == 0:
         # Define a dictionary to map levels to logger methods
@@ -25,8 +30,3 @@ def logging(comm, level, message):
 
         # Call the logging method
         log_method(message)
-
-# Initialize Logger
-# Get log level from the environment variable, default to 'INFO it not set
-log_level = os.getenv('LOG_LEVEL', 'INFO')
-logger = Logger('bufr_marine_insitu_profile_argo', level=log_level, colored_log=False)

@@ -41,13 +41,13 @@ class ObsBuilder:
         if bufr.DataCache.has(self.input_path, self.mapping_path):
             container = bufr.DataCache.get(self.input_path, self.mapping_path)
             logging(comm, 'INFO', f'Encode {category} from cache')
-            data = iodaEncoder(self._make_description()).encode(container)[(category,)]
+            data = iodaEncoder(self.make_description()).encode(container)[(category,)]
             logging(comm, 'INFO', f'Mark {category} as finished in the cache')
             bufr.DataCache.mark_finished(self.input_path, self.mapping_path, [category])
             logging(comm, 'INFO', f'Return the encoded data for {category}')
             return data
 
-        container = self._make_obs(comm)
+        container = self.make_obs(comm)
 
         # Gather data from all tasks into all tasks. Each task will have the complete record
         logging(comm, 'INFO', f'Gather data from all tasks into all tasks')
@@ -59,7 +59,7 @@ class ObsBuilder:
 
         # Encode the data
         logging(comm, 'INFO', f'Encode {category}')
-        data = iodaEncoder(self._make_description()).encode(container)[(category,)]
+        data = iodaEncoder(self.make_description()).encode(container)[(category,)]
 
         logging(comm, 'INFO', f'Mark {category} as finished in the cache')
         # Mark the data as finished in the cache
@@ -71,11 +71,11 @@ class ObsBuilder:
     def create_obs_file(self, output_path, type='netcdf', append=False):
 
         comm = bufr.mpi.Comm("world")
-        container = self._make_obs(comm)
+        container = self.make_obs(comm)
         container.gather(comm)
 
         # Encode the data
         if comm.rank() == 0:
-            FILE_ENCODER_DICT[type](self._make_description()).encode(container, output_path)
+            FILE_ENCODER_DICT[type](self.make_description()).encode(container, output_path)
 
         logging(comm, 'INFO', f'Return the encoded data')
