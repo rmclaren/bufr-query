@@ -9,8 +9,8 @@ class Logger
 
 abstract class ObsBuilder
 {
-  - container : DataContainer
-  - description : Description
+  - input_path : str
+  - mapping_path : str
 
   + create_obs_group(input_path, mapping_path, category, env)
   + create_obs_file(input_path, mapping_path, output_path)
