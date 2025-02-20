@@ -1,0 +1,48 @@
+@startuml
+'skinparam dpi 300
+'scale 1024 width
+
+class Logger
+{
+  - logging(comm, level, message)
+}
+
+abstract class ObsBuilder
+{
+  - container : DataContainer
+  - description : Description
+
+  + create_obs_group(input_path, mapping_path, category, env)
+  + create_obs_file(input_path, mapping_path, output_path)
+  - make_description(mapping_path, update=False)
+  - make_obs(comm, input_path, mapping_path)
+}
+
+abstract class MarineObsBuilder
+{
+  # convert_temp_to_celsius(name)
+  # convert_depth_from_pressure(name)
+  # add_preqc_var(name)
+  # add_error_var(name, error)
+  # add_seq_num(self)
+  # add_ocean_basin(self)
+}
+
+abstract class SatWndObsBuilder
+{
+  # compute_wind_components(wdir, wspd)
+}
+
+class SatWndAhiObsBuilder
+{
+  - make_description(mapping_path, update=False)
+  - make_obs(comm, input_path, mapping_path)
+}
+
+Logger <.. ObsBuilder
+ObsBuilder <|-- MarineObsBuilder
+ObsBuilder <|-- SatWndObsBuilder
+SatWndObsBuilder <|-- SatWndAhiObsBuilder
+
+
+@enduml
