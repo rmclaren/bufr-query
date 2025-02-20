@@ -20,6 +20,16 @@ namespace bufr {
 
 namespace details
 {
+    struct FrameMetaData
+    {
+      std::vector<int> dims;
+      std::vector<int> rawDims;
+      std::vector<int> filteredDims;
+      bool isMissing = false;
+    };
+
+    typedef std::shared_ptr<FrameMetaData> FrameMetaDataPtr;
+
     struct TargetMetaData
     {
         size_t targetIdx;
@@ -30,7 +40,10 @@ namespace details
         std::vector<int> groupedDims = {};
         std::vector<char> missingFrames;
         std::vector<Query> dimPaths;
+        bool isJagged = false;
     };
+
+    typedef std::shared_ptr<TargetMetaData> TargetMetaDataPtr;
 
     struct ResultData
     {
@@ -40,7 +53,7 @@ namespace details
         std::vector<Query> dimPaths;
     };
 
-    typedef std::shared_ptr<TargetMetaData> TargetMetaDataPtr;
+
 
 }  // namespace details
 
@@ -79,6 +92,8 @@ namespace details
 
      private:
         Frames frames_;
+
+        details::FrameMetaDataPtr analyzeFrame(const Frame& frame, const TargetPtr& target) const;
 
         /// \brief Computes and returns metadata associated with a target.
         /// \param name The name of the target to get the metadata for.
@@ -125,6 +140,9 @@ namespace details
         void validateGroupByField(const details::TargetMetaDataPtr& targetMetaData,
                                   const details::TargetMetaDataPtr& groupByMetaData) const;
 
+        void validateGroupByField(const size_t targetIdx,
+                                  const size_t groupByTargetIdx) const;
+
 
         /// \brief Copies filtered data from a source ResultData object into a destination
         ///        ResultData object.
@@ -153,6 +171,10 @@ namespace details
         /// \param groupByFieldName The name of the field to group the data by.
         void applyGroupBy(details::ResultData& resData,
                           const details::TargetMetaDataPtr& targetMetaData,
+                          const std::string& groupByFieldName) const;
+
+        void applyGroupBy(details::ResultData& resData,
+                          const std::string& fieldName,
                           const std::string& groupByFieldName) const;
 
         /// \brief Is the field a string field?

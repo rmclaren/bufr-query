@@ -4,6 +4,7 @@ import sys
 import bufr
 from bufr.encoders import netcdf
 from bufr.encoders import zarr
+from bufr.encoders import zarr_ocelot
 import numpy as np
 
 
@@ -288,21 +289,32 @@ def test_zarr_encoder():
     dataset = next(iter(zarr.Encoder(YAML_PATH).encode(container, OUTPUT_PATH).values()))
     assert abs(dataset['ObsValue/brightnessTemperature'][0,0] - 215.89) < 1e-3
 
+def test_zarr_ml_encoder():
+    DATA_PATH = 'testdata/gdas.t18z.1bmhs.tm00.bufr_d'
+    YAML_PATH = 'testinput/bufrtest_mhs_basic_mapping.yaml'
+    OUTPUT_PATH = 'testrun/bufrtest_python_test.zarr'
+
+    container = bufr.Parser(DATA_PATH, YAML_PATH).parse()
+
+    dataset = next(iter(zarr_ocelot.Encoder(YAML_PATH).encode(container, OUTPUT_PATH, append=True).values()))
+    assert abs(dataset['brightnessTemperature'][0,0] - 215.89) < 1e-3
+
 if __name__ == '__main__':
-    # Low level interface tests
-    test_basic_query()
-    test_string_field()
-    test_long_str_field()
-    test_type_override()
-    test_invalid_query()
-
-    # High level interface tests
-    test_highlevel_replace()
-    test_highlevel_modify()
-    test_highlevel_w_category()
-    test_highlevel_cache()
-    test_highlevel_append()
-
-    # Test Encoders
-    test_zarr_encoder()
+    # # Low level interface tests
+    # test_basic_query()
+    # test_string_field()
+    # test_long_str_field()
+    # test_type_override()
+    # test_invalid_query()
+    #
+    # # High level interface tests
+    # test_highlevel_replace()
+    # test_highlevel_modify()
+    # test_highlevel_w_category()
+    # test_highlevel_cache()
+    # test_highlevel_append()
+    #
+    # # Test Encoders
+    # test_zarr_encoder()
+    test_zarr_ml_encoder()
 

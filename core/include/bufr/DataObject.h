@@ -466,9 +466,10 @@ namespace bufr {
         // array and copying data into the correct indices.
 
         // Do the extra dimensions from the different ranks match?
-        bool adjustDims = false;
+        bool adjustDims = numDims != rcvDims.size();
         for (size_t idx = 1; idx < rcvDims.size(); idx++)
         {
+          if (adjustDims) break;
           adjustDims = (rcvDims[idx] != getDims()[idx]);
         }
 
@@ -480,24 +481,7 @@ namespace bufr {
           // Map the local data into the sendBuffer using the dimensions
           for (size_t i = 0; i < data_.size(); ++i)
           {
-            Location loc;
-
-            // Compute the location coordinate in the old data
-            size_t idx = i;
-            for (size_t dimIdx = 0; dimIdx < dims_.size(); ++dimIdx)
-            {
-              loc.push_back(idx % dims_[dimIdx]);
-              idx /= dims_[dimIdx];
-            }
-
-            // Map that location into the new data (compute the new index)
-            idx = 0;
-            for (size_t dimIdx = 0; dimIdx < rcvDims.size(); ++dimIdx)
-            {
-              idx += loc[dimIdx] * rcvDims[dimIdx];
-            }
-
-            sendBuffer[idx] = data_[i];
+            sendBuffer[i] = data_[i];
           }
 
           data_ = std::move(sendBuffer);
