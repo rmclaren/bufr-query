@@ -14,8 +14,8 @@ abstract class ObsBuilder
 
   + create_obs_group(input_path, mapping_path, category, env)
   + create_obs_file(input_path, mapping_path, output_path)
-  - make_description(mapping_path, update=False)
-  - make_obs(comm, input_path, mapping_path)
+  - make_description()
+  - make_obs(comm)
 }
 
 abstract class MarineObsBuilder
@@ -35,8 +35,8 @@ abstract class SatWndObsBuilder
 
 class SatWndAhiObsBuilder
 {
-  - make_description(mapping_path, update=False)
-  - make_obs(comm, input_path, mapping_path)
+  - make_description()
+  - make_obs(comm)
 }
 
 Logger <.. ObsBuilder
