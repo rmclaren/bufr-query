@@ -193,14 +193,9 @@ namespace bufr {
         {
             for (const auto &var : vars)
             {
-                std::ostringstream pathStr;
-                pathStr << "variables/" << var->getExportName();
+                log::debug() << "Exporting variable = " << var->getExportName() << std::endl;
 
-                std::string ovar;
-                ovar = var->getExportName();
-                log::debug() << "Exporting variable = " << ovar << std::endl;
-
-                exportData->add(pathStr.str(),
+                exportData->add(var->getExportName(),
                                 var->exportData(dataPair.second),
                                 dataPair.first);
             }

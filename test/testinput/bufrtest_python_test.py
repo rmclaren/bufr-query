@@ -123,8 +123,8 @@ def test_highlevel_replace():
 
     container = bufr.Parser(DATA_PATH, YAML_PATH).parse()
 
-    data = container.get('variables/brightnessTemp')
-    container.replace('variables/brightnessTemp', data * 1.1)
+    data = container.get('brightnessTemp')
+    container.replace('brightnessTemp', data * 1.1)
 
     dataset = next(iter(netcdf.Encoder(YAML_PATH).encode(container, OUTPUT_PATH).values()))
     obs_temp = dataset["ObsValue/brightnessTemperature"][:]
@@ -140,16 +140,16 @@ def test_highlevel_modify():
 
     container = bufr.Parser(DATA_PATH, YAML_PATH).parse()
 
-    data = container.get('variables/brightnessTemp')
-    paths = container.get_paths('variables/brightnessTemp')
-    container.add('variables/brightnessTemp_new', data, paths)
+    data = container.get('brightnessTemp')
+    paths = container.get_paths('brightnessTemp')
+    container.add('brightnessTemp_new', data, paths)
 
     str_data = np.array(["hello"]*data.shape[0])
-    container.add('variables/str_data', str_data, container.get_paths('variables/latitude'))
+    container.add('str_data', str_data, container.get_paths('latitude'))
 
     description = bufr.encoders.Description(YAML_PATH)
     description.add_variable(name='ObsValue/new_brightnessTemperature',
-                             source='variables/brightnessTemp_new',
+                             source='brightnessTemp_new',
                              units='K',
                              longName='New Brightness Temperature',
                              coordinates='latitude longitude Channel',
@@ -157,7 +157,7 @@ def test_highlevel_modify():
                              compressionLevel=9)
 
     description.add_variable(name='ObsValue/str_data',
-                             source='variables/str_data',
+                             source='str_data',
                              units='strs',
                              longName='Hello Strings')
 
@@ -195,7 +195,7 @@ def test_highlevel_modify():
     description.remove_dimension('Channel')
     description.add_dimension(name='New_Channel',
                               paths=['*/BRITCSTC', '*/BRIT'],
-                              source='variables/channel')
+                              source='channel')
 
     dataset = next(iter(netcdf.Encoder(description).encode(container, OUTPUT_PATH).values()))
 
@@ -219,9 +219,9 @@ def test_highlevel_append():
     new_container.append(container)
     new_container.append(container)
 
-    data = new_container.get('variables/brightnessTemp')
+    data = new_container.get('brightnessTemp')
 
-    orig_data = container.get('variables/brightnessTemp')
+    orig_data = container.get('brightnessTemp')
     orig_data = np.concatenate((orig_data, orig_data))
 
     assert orig_data.shape == data.shape
@@ -236,13 +236,13 @@ def test_highlevel_w_category():
 
     categories = container.all_sub_categories()
     for category in categories:  # [metop-a]
-        data = container.get('variables/antennaTemperature', category)
-        paths = container.get_paths('variables/antennaTemperature', category)
-        container.add('variables/antennaTemperature1', data, paths, category)
+        data = container.get('antennaTemperature', category)
+        paths = container.get_paths('antennaTemperature', category)
+        container.add('antennaTemperature1', data, paths, category)
 
     description = bufr.encoders.Description(YAML_PATH)
     description.add_variable(name='ObsValue/brightnessTemperature_new',
-                             source='variables/antennaTemperature1',
+                             source='antennaTemperature1',
                              units='K')
 
     for (key, dataset) in netcdf.Encoder(description).encode(container, OUTPUT_PATH).items():
@@ -270,8 +270,8 @@ def test_highlevel_cache():
     categories = container.all_sub_categories()
     for category in categories:
         cache_dat = bufr.DataCache.get(DATA_PATH, YAML_PATH)
-        assert np.allclose(dat.get('variables/antennaTemperature', category),
-                           cache_dat.get('variables/antennaTemperature', category))
+        assert np.allclose(dat.get('antennaTemperature', category),
+                           cache_dat.get('antennaTemperature', category))
 
         bufr.DataCache.mark_finished(DATA_PATH, YAML_PATH, category)
 

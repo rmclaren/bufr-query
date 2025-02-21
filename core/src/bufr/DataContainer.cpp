@@ -17,20 +17,20 @@ namespace bufr {
 
   void DataContainer::add(const std::string& fieldName, const std::shared_ptr<DataObjectBase> data,
                           const SubCategory& categoryId) {
-    if (hasKey(fieldName, categoryId)) {
+    if (hasKey(dropPath(fieldName), categoryId)) {
       std::ostringstream errorStr;
       errorStr << "ERROR: Field called " << fieldName << " already exists ";
       errorStr << "for subcategory " << makeSubCategoryStr(categoryId) << std::endl;
       throw eckit::BadParameter(errorStr.str());
     }
 
-    dataSets_.at(categoryId).insert({fieldName, data});
+    dataSets_.at(categoryId).insert({dropPath(fieldName), data});
   }
 
   void DataContainer::set(std::shared_ptr<DataObjectBase> data, const std::string& fieldName,
            const SubCategory& categoryId)
   {
-    if (!hasKey(fieldName, categoryId)) {
+    if (!hasKey(dropPath(fieldName), categoryId)) {
         std::ostringstream errStr;
         errStr << "ERROR: Either field called " << fieldName;
         errStr << " or category " << makeSubCategoryStr(categoryId);
@@ -39,12 +39,12 @@ namespace bufr {
         throw eckit::BadParameter(errStr.str());
     }
 
-    dataSets_.at(categoryId).at(fieldName) = data;
+    dataSets_.at(categoryId).at(dropPath(fieldName)) = data;
   }
 
   std::shared_ptr<DataObjectBase> DataContainer::get(const std::string& fieldName,
                                                      const SubCategory& categoryId) const {
-    if (!hasKey(fieldName, categoryId)) {
+    if (!hasKey(dropPath(fieldName), categoryId)) {
       std::ostringstream errStr;
       errStr << "ERROR: Either field called " << fieldName;
       errStr << " or category " << makeSubCategoryStr(categoryId);
@@ -53,13 +53,13 @@ namespace bufr {
       throw eckit::BadParameter(errStr.str());
     }
 
-    return dataSets_.at(categoryId).at(fieldName);
+    return dataSets_.at(categoryId).at(dropPath(fieldName));
   }
 
   std::vector<std::string> DataContainer::getPaths(const std::string& fieldName,
                                                    const SubCategory& categoryId) const
   {
-    auto dimPaths = get(fieldName, categoryId)->getDimPaths();
+    auto dimPaths = get(dropPath(fieldName), categoryId)->getDimPaths();
     std::vector<std::string> paths(dimPaths.size());
     for (size_t pathIdx = 0; pathIdx < dimPaths.size(); pathIdx++)
     {
@@ -71,7 +71,7 @@ namespace bufr {
 
   std::shared_ptr<DataObjectBase> DataContainer::getGroupByObject(
     const std::string& fieldName, const SubCategory& categoryId) const {
-    if (!hasKey(fieldName, categoryId)) {
+    if (!hasKey(dropPath(fieldName), categoryId)) {
       std::ostringstream errStr;
       errStr << "ERROR: Either field called " << fieldName;
       errStr << " or category " << makeSubCategoryStr(categoryId);
@@ -80,7 +80,7 @@ namespace bufr {
       throw eckit::BadParameter(errStr.str());
     }
 
-    auto& dataObject             = dataSets_.at(categoryId).at(fieldName);
+    auto& dataObject             = dataSets_.at(categoryId).at(dropPath(fieldName));
     const auto& groupByFieldName = dataObject->getGroupByFieldName();
 
     std::shared_ptr<DataObjectBase> groupByObject = dataObject;
@@ -99,7 +99,7 @@ namespace bufr {
   bool DataContainer::hasKey(const std::string& fieldName, const SubCategory& categoryId) const {
     bool hasKey = false;
     if (dataSets_.find(categoryId) != dataSets_.end()
-        && dataSets_.at(categoryId).find(fieldName) != dataSets_.at(categoryId).end()) {
+        && dataSets_.at(categoryId).find(dropPath(fieldName)) != dataSets_.at(categoryId).end()) {
       hasKey = true;
     }
 
@@ -293,5 +293,16 @@ namespace bufr {
         data->allGather(comm);
       }
     }
+  }
+
+  std::string DataContainer::dropPath(const std::string& fieldName)
+  {
+    size_t pos = fieldName.find_last_of("/");
+    if (pos == std::string::npos)
+    {
+      return fieldName;
+    }
+
+    return fieldName.substr(pos + 1);
   }
 }  // namespace bufr

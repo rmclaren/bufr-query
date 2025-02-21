@@ -122,6 +122,11 @@ namespace bufr {
 
     /// \brief Uses category map to generate listings of all possible subcategories.
     void makeDataSets();
+
+    /// \brief Remove the path info from the a field name string
+    /// \param fieldName The field name to remove the path from
+    /// \return The field name without the path
+    static std::string dropPath(const std::string& fieldName);
   };
 }  // namespace bufr
 

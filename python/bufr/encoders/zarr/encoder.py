@@ -62,7 +62,7 @@ class Encoder(bufr.encoders.EncoderBase):
                       dims:bufr.encoders.EncoderDimensions):
 
         for var in self.description.get_variables():
-            if var["source"] not in container.list():
+            if var["source"].split('/')[-1] not in container.list():
                 raise ValueError(f'Variable {var["source"]} not found in the container')
 
             data = container.get(var['source'], category)
