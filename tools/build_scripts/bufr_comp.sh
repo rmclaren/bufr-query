@@ -10,7 +10,7 @@ set -eu
 
 file_type=$1
 cmd=$2  
-file_names=($3)     # convert space-separated strings into an array
+file_name=($3)     # convert space-separated strings into an array
 tol=${4:-"0.0"}
 verbose=${5:-${VERBOSE:-"N"}}
 
@@ -24,10 +24,8 @@ echo "emily checking: U are using new bufr_comp.sh ....."
 case $file_type in
   netcdf)
     $cmd && \
-    nccmp testrun/$file_name testoutput/$file_name -d -m -g -f -s -S -B -T ${tol}
-    rc=${?}
-    for i in "${!file_names[@]}"; do
-        file_name=${file_names[$i]}
+    for i in "${!file_name[@]}"; do
+        file_name=${file_name[$i]}
         nccmp testrun/$file_name testoutput/$file_name -d -m -g -f -s -S -B -T ${tol}
         rc=${?}
         if [[ $rc -ne 0 ]]; then
