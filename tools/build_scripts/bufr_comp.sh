@@ -19,7 +19,6 @@ verbose=${5:-${VERBOSE:-"N"}}
    $verbose == [Tt][Rr][Uu][Ee] ]] && set -x
 
 rc="-1"
-echo "emily checking: U are using new bufr_comp.sh ....."
 
 case $file_type in
   netcdf)
