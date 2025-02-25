@@ -1,2 +1,2 @@
-from logger import logger
-from obs_builder import ObsBuilder
+from .logger import Logger
+from .obs_builder import ObsBuilder

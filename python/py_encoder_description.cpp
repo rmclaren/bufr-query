@@ -55,14 +55,57 @@ void setupEncoderDescription(py::module& m)
         py::arg("chunks")=std::vector<size_t>{},
         py::arg("compressionLevel")=3,
           "Add a variable to the description.")
+   .def("add_variables", [](Description& self, const py::list& vars)
+     {
+        for (auto var_dict : vars)
+        {
+          // Required parameters
+          auto name = var_dict["name"].cast<std::string>();
+          auto source = var_dict["source"].cast<std::string>();
+          auto units = var_dict["units"].cast<std::string>();
+
+          // Optional parameters
+          std::string longName;
+          if (var_dict.contains("longName"))
+          {
+            longName = var_dict["longName"].cast<std::string>();
+          }
+
+          std::string coordinates;
+          if (var_dict.contains("coordinates"))
+          {
+            coordinates = var_dict["coordinates"].cast<std::string>();
+          }
+
+          auto chunks = std::vector<size_t>{};
+          if (var_dict.contains("chunks"))
+          {
+            chunks = var_dict["chunks"].cast<std::vector<size_t>>();
+          }
+
+          int compressionLevel = 3;
+          if (var_dict.contains("compressionLevel"))
+          {
+            compressionLevel = var_dict["compressionLevel"].cast<int>();
+          }
+
+          self.py_addVariable(name,
+                              source,
+                              units,
+                              longName,
+                              coordinates,
+                              chunks,
+                              compressionLevel);
+        }
+     })
    .def("remove_variable", &Description::removeVariable,
         py::arg("name"),
         "Remove a variable from the description.")
    .def("add_dimension",
          static_cast<void (Description::*)(const std::string&,
-                                         const std::vector<std::string>&,
+                                           const std::vector<std::string>&,
                                            const std::string&,
-                                         const std::string&)>(&Description::addDimension),
+                                           const std::string&)>(&Description::addDimension),
         py::arg("name"),
         py::arg("paths"),
         py::arg("source") = "",

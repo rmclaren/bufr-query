@@ -31,7 +31,8 @@ void setupNetcdfEncoder(py::module& m)
    .def(py::init<const Description&>())
    .def("encode", [](Encoder& self,
                      const std::shared_ptr<DataContainer>& container,
-                     const std::string& path) -> std::map<py::tuple, py::object>
+                     const std::string& path,
+                     bool append = false) -> std::map<py::tuple, py::object>
      {
         if (path.empty())
         {
@@ -42,7 +43,7 @@ void setupNetcdfEncoder(py::module& m)
         backend.isMemoryFile = false;
         backend.path = path;
 
-        auto encodedData = self.encode(container, backend);
+        auto encodedData = self.encode(container, backend, append);
         std::map<py::tuple, py::object> pyEncodedData;
 
         // Ensure Python is initialized and import netCDF4
@@ -67,5 +68,6 @@ void setupNetcdfEncoder(py::module& m)
       },
       py::arg("container"),
       py::arg("path"),
+      py::arg("append") = false,
       "Get the class to encode the dataset");
 }

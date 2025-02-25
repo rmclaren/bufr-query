@@ -1,32 +1,57 @@
 import os
+from enum import Enum
 
 try:
-    from wxflow import Logger
+    import wxflow
 except ImportError:
     raise ImportError('wxflow was not found. Cant make logger objects.')
 
-# Initialize Logger
-# Get log level from the environment variable, default to 'INFO it not set
-log_level = os.getenv('LOG_LEVEL', 'INFO')
-logger = Logger('obs_builder', level=log_level, colored_log=False)
+class Logger:
+    def __init__(self, name, comm=None):
+        self.comm = comm
+        self.logger = wxflow.Logger(name,
+                                    level=os.getenv('LOG_LEVEL', 'INFO'),
+                                    colored_log=False)
 
-def logging(comm, level, message):
-    if comm.rank() == 0:
-        # Define a dictionary to map levels to logger methods
-        log_methods = {
-            'DEBUG': logger.debug,
-            'INFO': logger.info,
-            'WARNING': logger.warning,
-            'ERROR': logger.error,
-            'CRITICAL': logger.critical,
-        }
+        self.log_levels = {'DEBUG': self.logger.debug,
+                           'INFO': self.logger.info,
+                           'WARNING': self.logger.warning,
+                           'ERROR': self.logger.error,
+                           'CRITICAL': self.logger.critical}
 
-        # Get the appropriate logging method, default to 'INFO'
-        log_method = log_methods.get(level.upper(), logger.info)
+    def info(self, message):
+        self._log(message, 'INFO')
 
-        if log_method == logger.info and level.upper() not in log_methods:
-            # Log a warning if the level is invalid
-            logger.warning(f'log level = {level}: not a valid level --> set to INFO')
+    def debug(self, message):
+        self._log(message, 'DEBUG')
 
-        # Call the logging method
-        log_method(message)
+    def warning(self, message):
+        self._log(message, 'WARNING')
+
+    def error(self, message):
+        self._log(message, 'ERROR')
+
+    def info_all(self, message):
+        self._log_all(message, 'INFO')
+
+    def debug_all(self, message):
+        self._log_all(message, 'DEBUG')
+
+    def warning_all(self, message):
+        self._log_all(message, 'WARNING')
+
+    def error_all(self, message):
+        self._log_all(message, 'ERROR')
+
+    def _log(self, message, level='INFO'):
+        assert level.upper() in self.log_levels.keys(), f'Invalid log level: {level}'
+
+        if self.comm.rank() == 0:
+            log_method = self.log_levels.get(level.upper(), self.logger.info)
+            log_method(message)
+
+    def _log_all(self, message, level='INFO'):
+        assert level.upper() in self.log_levels.keys(), f'Invalid log level: {level}'
+
+        log_method = self.log_levels.get(level.upper(), self.logger.info)
+        log_method(f'Rank {self.comm.rank()}: {message}')

@@ -19,7 +19,7 @@ class Encoder(bufr.encoders.EncoderBase):
 
         super(Encoder, self).__init__(self.description)
 
-    def encode(self, container: bufr.DataContainer, output_path:str) -> dict[tuple[str],zarr.Group]:
+    def encode(self, container: bufr.DataContainer, output_path:str, append:bool=False) -> dict[tuple[str],zarr.Group]:
         result:dict[tuple[str], zarr.Group] = {}
         for category in container.all_sub_categories():
             cat_idx = 0
