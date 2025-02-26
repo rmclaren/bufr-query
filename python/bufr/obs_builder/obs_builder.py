@@ -1,5 +1,5 @@
-import os.path
-
+import os
+import inspect
 import bufr
 
 from ..encoders import netcdf, zarr
@@ -9,8 +9,52 @@ from .logger import Logger
 FILE_ENCODER_DICT = {'netcdf': netcdf.Encoder,
                      'zarr': zarr.Encoder}
 
-def addEncoderType(name, encoder):
+def add_encoder_type(name, encoder):
     FILE_ENCODER_DICT[name] = encoder
+
+def add_main_functions(cls):
+    def create_obs_group(input_path, mapping_path, category, env):
+        obs_builder = cls(input_path, mapping_path)
+        obs_builder.create_obs_group(category, env)
+
+    def create_obs_file(input_path, mapping_path, output_path, type='netcdf', append=False):
+        obs_builder = cls(input_path, mapping_path)
+        return obs_builder.create_obs_file(output_path, type, append)
+
+    def default_main():
+        import sys
+        import time
+        import argparse
+        from bufr import mpi
+        from bufr.obs_builder import Logger
+
+        start_time = time.time()
+
+        mpi.App(sys.argv)
+        comm = mpi.Comm("world")
+
+        # Required input arguments
+        parser = argparse.ArgumentParser()
+        parser.add_argument('input', type=str, help='Input BUFR')
+        parser.add_argument('mapping', type=str, help='BUFR2IODA Mapping File')
+        parser.add_argument('output', type=str, help='Output NetCDF')
+
+        args = parser.parse_args()
+        create_obs_file(args.input, args.mapping, args.output)
+
+        end_time = time.time()
+        running_time = end_time - start_time
+        Logger(os.path.basename(__file__), comm=comm).info(f'Total running time: {running_time}')
+
+    caller_frame = inspect.stack()[1]
+    calling_module = inspect.getmodule(caller_frame.frame)
+    calling_module.create_obs_group = create_obs_group
+    calling_module.create_obs_file = create_obs_file
+    calling_module.default_main = default_main
+
+    if calling_module.__name__ == '__main__':
+        default_main()
+
 
 class ObsBuilder:
     def __init__(self, input_path, mapping_path, log_name='obs_builder'):

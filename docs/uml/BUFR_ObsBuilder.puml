@@ -4,13 +4,21 @@
 
 class Logger
 {
-  - logging(comm, level, message)
+  + info(message)
+  + debug(message)
+  + error(message)
+  + info_all(message)
+  + debug_all(message)
+  + error_all(message)
+  - _log(message, level)
+  - _log_all(message, level)
 }
 
 abstract class ObsBuilder
 {
   - input_path : str
   - mapping_path : str
+  - log : Logger
 
   + create_obs_group(input_path, mapping_path, category, env)
   + create_obs_file(input_path, mapping_path, output_path)
@@ -18,7 +26,7 @@ abstract class ObsBuilder
   - make_obs(comm)
 }
 
-abstract class MarineObsBuilder
+class MarineObsBuilder
 {
   # convert_temp_to_celsius(name)
   # convert_depth_from_pressure(name)
@@ -28,7 +36,7 @@ abstract class MarineObsBuilder
   # add_ocean_basin(self)
 }
 
-abstract class SatWndObsBuilder
+class SatWndObsBuilder
 {
   # compute_wind_components(wdir, wspd)
 }
@@ -39,7 +47,7 @@ class SatWndAhiObsBuilder
   - make_obs(comm)
 }
 
-Logger <.. ObsBuilder
+Logger <--* ObsBuilder
 ObsBuilder <|-- MarineObsBuilder
 ObsBuilder <|-- SatWndObsBuilder
 SatWndObsBuilder <|-- SatWndAhiObsBuilder
