@@ -13,9 +13,9 @@
 extern "C" {
 #endif
 
-  void SSMIS_Spatial_Average_f(int BufrSat, int Method, int Num_Obs, int NChanl, void* Fov, 
-                              void* Node_InOut,void* Time, void* Lat, void* Lon, void* BT_InOut,
-                              int* Error_Status);
+  void SSMIS_Spatial_Average_f(int bufrsat, int method, int num_obs, int nchanl, void* fov, void* rainflag, 
+                              void* node_inout, void* time, void* lat, void* lon, void* bt_inout,
+                              int* error_status);
 
 #ifdef __cplusplus
 }

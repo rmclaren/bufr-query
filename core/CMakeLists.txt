@@ -97,14 +97,12 @@ list(APPEND BUFR_PRIVATE
 	src/bufr/BufrReader/Exports/Variables/Transforms/atms/atms_spatial_average_interface.h
 	src/bufr/BufrReader/Exports/Variables/Transforms/atms/atms_spatial_average_interface.f90
 
-    # ssmis
-    src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/ssmis_kinds.F90
-    src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/m_find.f90
-    src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/m_uniq.f90
-    src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/m_distance.f90
-    src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/ssmis_spatial_average_mod.f90
-    src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/ssmis_spatial_average_interface.h
-    src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/ssmis_spatial_average_interface.f90
+        # ssmis
+        src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/ssmis_kinds.F90
+        src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/m_distance.f90
+        src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/ssmis_spatial_average_mod.f90
+        src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/ssmis_spatial_average_interface.h
+        src/bufr/BufrReader/Exports/Variables/Transforms/ssmis/ssmis_spatial_average_interface.f90
 )
 
 list (APPEND ENCODERS_PRIVATE

@@ -22,6 +22,7 @@ namespace
     namespace ConfKeys
     {
         const char* FieldOfViewNumber = "fieldOfViewNumber";
+        const char* RainFlag = "rainFlag";
         const char* SensorChannelNumber = "sensorChannelNumber";
         const char* BrightnessTemperature = "brightnessTemperature";
         const char* ObsTime = "obsTime";
@@ -33,6 +34,7 @@ namespace
     }  // namespace ConfKeys
 
     const std::vector<std::string> FieldNames = {ConfKeys::FieldOfViewNumber,
+                                                 ConfKeys::RainFlag,
                                                  ConfKeys::SensorChannelNumber,
                                                  ConfKeys::BrightnessTemperature,
                                                  ConfKeys::SatelliteId,
@@ -68,7 +70,7 @@ namespace bufr {
         {
            log::info()  << "Observation dimension should be 2 " << std::endl;
            log::error() << "Incorrect observation dimension : " << radObj->getDims().size()
-                                                                       << std::endl;
+                                                                << std::endl;
         }
         int nobs = (radObj->getDims())[0];
         int nchn = (radObj->getDims())[1];
@@ -116,18 +118,21 @@ namespace bufr {
                                                    &scanline, &error_status);
             }
         } else if (sensorOption == "ssmis") {
-            std::cout << "Sensor is SSMIS." << std::endl;
+            // Declare and initialize rain flag array
+            // rainflag has the same dimension as fovn
+	    std::cout << "Sensor is SSMIS." << std::endl;
             std::shared_ptr<DataObjectBase> satidObj;
             std::shared_ptr<DataObjectBase> latObj;
             std::shared_ptr<DataObjectBase> lonObj;
+            std::shared_ptr<DataObjectBase> rainflagObj;
             if (conf_.has(ConfKeys::SatelliteId)) {
                 satidObj = map.at(getExportKey(ConfKeys::SatelliteId));
-            } else {
+	    } else {
                 throw std::runtime_error("SatelliteId is missing for SSMIS.");
             }
             if (conf_.has(ConfKeys::Longitude)) {
                 lonObj = map.at(getExportKey(ConfKeys::Longitude));
-            } else {
+	    } else {
                 throw std::runtime_error("Longitude is missing for SSMIS.");
             }
             if (conf_.has(ConfKeys::Latitude)) {
@@ -135,28 +140,41 @@ namespace bufr {
             } else {
                 throw std::runtime_error("Latitude is missing for SSMIS.");
             }
-            int method = conf_.getInt(ConfKeys::Method, 1); // Default is 1
+            if (conf_.has(ConfKeys::RainFlag)) {
+                rainflagObj = map.at(getExportKey(ConfKeys::RainFlag));
+            } else {
+                throw std::runtime_error("RainFlag is missing for SSMIS.");
+            }
             // Get satid
             std::vector<int> satid(satidObj->size(), DataObject<int>::missingValue());
             for (size_t idx = 0; idx < satidObj->size(); idx++)
             {
                satid[idx] = satidObj->getAsInt(idx);
             }
-            // Get lat/lon
-            std::vector<float> lat(latObj->size(), DataObject<int>::missingValue());
-            for (size_t idx = 0; idx < latObj->size(); idx++)
-            {
-               lat[idx] = latObj->getAsInt(idx);
-            }
-            std::vector<float> lon(lonObj->size(), DataObject<int>::missingValue());
+            // Get latitude
+            std::vector<float> lon(lonObj->size(), DataObject<float>::missingValue());
             for (size_t idx = 0; idx < lonObj->size(); idx++)
             {
-               lon[idx] = lonObj->getAsInt(idx);
+               lon[idx] = lonObj->getAsFloat(idx);
             }
+            // Get latitude
+            std::vector<float> lat(latObj->size(), DataObject<float>::missingValue());
+            for (size_t idx = 0; idx < latObj->size(); idx++)
+            {
+               lat[idx] = latObj->getAsFloat(idx);
+            }
+            // Get rain flag
+            std::vector<int> rainflag(rainflagObj->size(), DataObject<int>::missingValue());
+            for (size_t idx = 0; idx < rainflagObj->size(); idx++)
+            {
+               rainflag[idx] = rainflagObj->getAsInt(idx);
+            }
+	    // Get method for spatial averaging 
+            int method = conf_.getInt(ConfKeys::Method, 1); // Default is 1
             if (nobs > 0) {
                 int error_status;
                 std::vector<int> Node_InOut(nobs, DataObject<int>::missingValue());
-	        SSMIS_Spatial_Average_f(satid[1], method, nobs, nchn, &fovn, &Node_InOut, &obstime,
+	        SSMIS_Spatial_Average_f(satid[1], method, nobs, nchn, &fovn, &rainflag, &Node_InOut, &obstime,
                                              &lat, &lon, &btobs, &error_status);
             }
         } else {
