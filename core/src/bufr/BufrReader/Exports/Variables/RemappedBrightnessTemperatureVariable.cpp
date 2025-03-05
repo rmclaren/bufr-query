@@ -173,8 +173,8 @@ namespace bufr {
             int method = conf_.getInt(ConfKeys::Method, 1); // Default is 1
             if (nobs > 0) {
                 int error_status;
-                std::vector<int> Node_InOut(nobs, DataObject<int>::missingValue());
-	        SSMIS_Spatial_Average_f(satid[1], method, nobs, nchn, &fovn, &rainflag, &Node_InOut, &obstime,
+		float missingval = DataObject<float>::missingValue();
+	        SSMIS_Spatial_Average_f(satid[1], method, nobs, nchn, missingval, &fovn, &rainflag,  &obstime,
                                              &lat, &lon, &btobs, &error_status);
             }
         } else {

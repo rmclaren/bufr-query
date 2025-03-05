@@ -26,8 +26,8 @@ Module SSMIS_Spatial_Average_Mod
 
 CONTAINS 
 
-  SUBROUTINE SSMIS_Spatial_Average(bufrsat, method, num_obs, nchanl,  &
-                                   fov, rflg, node_inout, time, lat, lon, bt_inout, error_status)
+  SUBROUTINE SSMIS_Spatial_Average(bufrsat, method, num_obs, nchanl, missingval,  &
+                                   fov, rflg, time, lat, lon, bt_inout, error_status)
 
     IMPLICIT NONE
     
@@ -38,10 +38,10 @@ CONTAINS
     integer(i_kind) ,intent(in   ) :: fov(num_obs)
     integer(i_kind) ,intent(in   ) :: rflg(num_obs)
     integer(i_llong),intent(in   ) :: time(num_obs)
+    real(r_kind)    ,intent(in   ) :: missingval 
     real(r_kind)    ,intent(in   ) :: lat(num_obs)
     real(r_kind)    ,intent(in   ) :: lon(num_obs)
     real(r_kind)    ,intent(inout) :: bt_inout(nchanl*num_obs)
-    integer(i_kind) ,intent(inout) :: node_inout(num_obs)
     integer(i_kind) ,intent(inout) :: error_status
 
     ! Declare local parameters
@@ -113,7 +113,6 @@ CONTAINS
        t1          = time(1)  ! time for first scanline
        nscan       = 1        ! first scanline
        scanline(1) = nscan
-       write(1000+bufrsat,100) 'iobs', 'fov', 'time', 'time-1', 't2', 't1', 'tdiff', 'slnm'
        do iobs = 2, num_obs
           t2    = time(iobs) 
           tdiff = t2-t1
@@ -123,11 +122,7 @@ CONTAINS
              t1    = t2
           endif
           scanline(iobs) = nscan
-
-          write(1000+bufrsat,101) iobs, fov(iobs), time(iobs), time(iobs-1), t2, t1, tdiff, scanline(iobs)
        enddo
-100    format(2(a6,2x),2(a12,2x), 2(a12,2x), a12,  2x,a6)
-101    format(2(i6,2x),2(i12,2x), 2(i12,2x), f12.5,2x,i6)
        max_scan = maxval(scanline)
        write(*,*) 'SSMIS_Spatial_Average: max_scan,max_fov,nchanl = ', &
                  max_scan,max_fov,nchanl
@@ -143,14 +138,7 @@ CONTAINS
 !       mintime = MINVAL(time)
 !       scanline(1:num_obs) = NINT(DBLE((time(1:num_obs)-mintime)/scan_interval))+1
 !!      scanline(1:num_obs) = FLOOR((time(1:num_obs)-mintime)/scan_interval)+1
-!       scanlinex(1:num_obs) = DBLE((time(1:num_obs)-mintime)/scan_interval)
 !       max_scan=MAXVAL(scanline)
-!       write(1000+bufrsat,100) 'iobs','fov','snlm','rflg','snlmx','lat','lon','time','tmin','dscan','bt'
-!       do i = 1, num_obs
-!          write(1000+bufrsat,101) i, fov(i), scanline(i), rflg(i), scanlinex(i), lat(i), lon(i), time(i), mintime, scan_interval, bt_obs(:,i)
-!       enddo
-!100    format(4(a6,2x),a8,  2x,2(a12  ,2x),a12,2x,a12,a8,a8)
-!101    format(4(i6,2x),f8.3,2x,2(f12.5,2x),i12,2x,i12,f8.3,24(f8.3,2x))
 !       write(*,*) 'SSMIS_Spatial_Average: mintime          = ', mintime
 !       write(*,*) 'SSMIS_Spatial_Average: time min/max     = ', minval(time), maxval(time)
 !       write(*,*) 'SSMIS_Spatial_Average: scanline min/max = ', minval(scanline), maxval(scanline)
@@ -159,35 +147,27 @@ CONTAINS
 !       write(*,*) 'SSMIS_Spatial_Average: max_fov          = ', max_fov
 
        ! Index between 1D and 2D data arrays 
-       write(2000+bufrsat,200) 'iobs','fov','snlm','snlmbk','rflg','lat','lon''time','tmin','dscan','bt'
        allocate(scanline_back(max_fov,max_scan))
        scanline_back(:,:) = -1_i_kind
        do iobs=1,num_obs
           scanline_back(fov(iobs),scanline(iobs))=iobs
-          write(2000+bufrsat,201) iobs, fov(iobs), scanline(iobs), scanline_back(fov(iobs),scanline(iobs)), rflg(iobs), &
-                                  lat(iobs),lon(iobs),time(iobs), mintime, scan_interval, bt_obs(:,iobs)
        end do
        write(6,*) 'SSMIS_Spatial_Average: scanline_back min/max   = ', minval(scanline_back), maxval(scanline_back)
        write(6,*) 'SSMIS_Spatial_Average: scanline      min/max   = ', minval(scanline), maxval(scanline)
        write(*,*) 'SSMIS_Spatial_Average: max_scan,max_fov,nchanl = ', max_scan,max_fov,nchanl
-200    format(5(a6,2x),2(a12,  2x),2(a12,2x),a8,  2x,24(f8.3,2x))
-201    format(5(i6,2x),2(f12.5,2x),2(i12,2x),f8.3,2x,24(f8.3,2x))
 
 !      Allocate and initialize variables
        allocate(bt_image(max_fov,max_scan,nchanl))
        allocate(latitude(max_fov,max_scan))
        allocate(longitude(max_fov,max_scan))
        allocate(rainflag(max_fov,max_scan))
-       allocate(nodeinfo(max_fov,max_scan))
-       bt_image(:,:,:) = 1000.0_r_kind
-       latitude(:,:)   = 1000.0_r_kind 
-       longitude(:,:)  = 1000.0_r_kind 
-       nodeinfo(:,:)   = 1000_i_kind 
-       rainflag(:,:)   = 1000_i_kind 
+       bt_image(:,:,:) = missingval 
+       latitude(:,:)   = missingval 
+       longitude(:,:)  = missingval 
+       rainflag(:,:)   = missingval 
 
 !      Put data into 2D (fov vs. scanline) array
        write(*,*) 'SSMIS_Spatial_Average: put data into 2D ...'
-       write(3000+bufrsat,300) 'iobs','snlmbk','lat','lon','fov','snlm','rflg','bt'
        do iobs = 1, num_obs
           latitude(fov(iobs),scanline(iobs))      = lat(iobs) 
           longitude(fov(iobs),scanline(iobs))     = lon(iobs) 
@@ -195,11 +175,6 @@ CONTAINS
 !         bt_image(fov(iobs),scanline(iobs),:) = bt_obs(:,iobs)
           if (rainflag(fov(iobs),scanline(iobs)) < 1_i_kind) bt_image(fov(iobs),scanline(iobs),:) = bt_obs(:,iobs)
           scanline_back(fov(iobs),scanline(iobs)) = iobs
-          write(3000+bufrsat,301) iobs, scanline_back(fov(iobs),scanline(iobs)), &
-                          latitude(fov(iobs),scanline(iobs)), longitude(fov(iobs),scanline(iobs)), &
-                          fov(iobs), scanline(iobs), rainflag(fov(iobs),scanline(iobs)), bt_image(fov(iobs),scanline(iobs),1:nchanl)
-300       format(2(a6,2x),2(a12,2x),3(a6,2x),24(a8))
-301       format(2(i6,2x),2(f12.5,2x),3(i6,2x),24(f8.3))
        enddo
        write(*,*) 'SSMIS_Spatial_Average: latitude min/max      = ', minval(latitude), maxval(latitude) 
        write(*,*) 'SSMIS_Spatial_Average: longitude min/max     = ', minval(longitude), maxval(longitude) 
@@ -207,53 +182,6 @@ CONTAINS
        write(*,*) 'SSMIS_Spatial_Average: bt_image min/max      = ', minval(bt_image), maxval(bt_image)
        write(*,*) 'SSMIS_Spatial_Average: rainflag min/max      = ', minval(rainflag), maxval(rainflag)
 
-!>>debug
-       write(33000+bufrsat,302) 'iscan', 'ifov', 'slnmbk', 'lat', 'lon'
-       do iscan = 1, max_scan
-          do ifov = 1, max_fov
-              write(33000+bufrsat,303) iscan, ifov, scanline_back(ifov,iscan),latitude(ifov,iscan), longitude(ifov,iscan)
-           enddo
-       enddo
-302    format(3(a6,2x),2(a12  ,2x))
-303    format(3(i6,2x),2(f12.5,2x))
-
-!<<debug
-
-!       write(*,*) 'SSMIS_Spatial_Average: determine node ...' 
-!!      Determine AS/DS node information for each scanline
-!       loop1: do iscan = 1, max_scan-1
-!          loop2: do ifov = 1, max_fov
-!             if (scanline_back(ifov,iscan) > 0 .and. scanline_back(ifov,iscan+1) > 0) then
-!                dlat = latitude(ifov,iscan+1)-latitude(ifov,iscan)
-!                if (dlat < 0.0_r_kind) then
-!                   nodeinfo(:,iscan) = ds_node 
-!                else
-!                   nodeinfo(:,iscan) = as_node 
-!                endif
-!                cycle loop1
-!             endif
-!          enddo loop2
-!       enddo loop1
-!       nodeinfo(:,max_scan) = nodeinfo(:,max_scan-1)
-!       write(*,*) 'SSMIS_Spatial_Average: nodeinfo min/max = ', minval(nodeinfo), maxval(nodeinfo)
-!
-!!>>debug
-!       write(4000+bufrsat,400)'iscan','ifov','dlat','lat1','lat','lon','node','bt'
-!       loopa: do iscan = 1, max_scan-1
-!          loopb: do ifov = 1, max_fov
-!             if (scanline_back(ifov,iscan) > 0 .and. scanline_back(ifov,iscan+1) > 0) then
-!                dlat = latitude(ifov,iscan+1)-latitude(ifov,iscan)
-!             endif
-!             write(4000+bufrsat,401) iscan, ifov, dlat, latitude(ifov,iscan+1), latitude(ifov,iscan), longitude(ifov,iscan), &
-!                            nodeinfo(ifov,iscan), minval(bt_image(ifov,iscan,:)), maxval(bt_image(ifov,iscan,:))
-!          enddo loopb
-!       enddo loopa
-!400    format(2(a6,2x),4(a25,2x),    (a6,2x),2(a8,2x))
-!401    format(2(i6,2x),4(es25.18,2x),(i6,2x),2(f8.3,2x))
-!<<debug
-
-       write(5000+bufrsat,500) 'iobs', 'iscan', 'ifov', 'slnm', 'fov', 'rflg','lat', 'lon'
-       write(6000+bufrsat,600) 'iobs', 'iscan', 'ifov', 'slnm', 'fov', 'rflg','lat', 'lon'
        write(*,*) 'SSMIS_Spatial_Average: do spatial averaging ... '
 !      Do spatial averaging in the box centered on each fov for each channel
 !$omp parallel do  schedule(dynamic,1)private(ic,iobs,iscan,ifov,ns1,ns2,np1,np2,xnum,mta,is,ip,lat1,lon1,lat2,lon2,dist,wgt)
@@ -261,14 +189,7 @@ CONTAINS
           fov_loop: do ifov = 1, max_fov 
 
              iobs = scanline_back(ifov,iscan) 
-             write(5000+bufrsat,501) iobs, iscan, ifov, scanline(iobs), fov(iobs), rainflag(ifov,iscan), latitude(ifov,iscan), longitude(ifov,iscan)
-             write(5000+bufrsat,502) bt_image(ifov,iscan,:) 
-             write(5000+bufrsat,502) bt_obs(:,iobs) 
-500          format(6(a6,2x),2(a12  ,2x))
-501          format(6(i6,2x),2(f12.5,2x))
-502          format(24(f8.3,2x))
              if (iobs >0) then 
-                node_inout(iobs) = nodeinfo(ifov,iscan)
 !               Define grid box (3 (scan direction) x 7 (satellite track dir))
                 ns1 = iscan-3          
                 ns2 = iscan+3          
@@ -284,7 +205,8 @@ CONTAINS
                    mta    = 0.0_r_kind
                    if (any(bt_image(np1:np2,ns1:ns2,ic) < btmin .or. &
                            bt_image(np1:np2,ns1:ns2,ic) > btmax)) then 
-                      bt_obs(ic,iobs) = 1000.0_r_kind 
+                   !  bt_obs(ic,iobs) = 1000.0_r_kind 
+                      bt_obs(ic,iobs) = missingval 
                    else
 !                     ! Calculate distance of each fov to the center fov 
                       box_y1: do is = ns1, ns2 
@@ -308,12 +230,6 @@ CONTAINS
                    endif
                 enddo channel_loop 
              endif
-             write(6000+bufrsat,601) iobs, iscan, ifov, scanline(iobs), fov(iobs), rainflag(ifov,iscan), latitude(ifov,iscan), longitude(ifov,iscan)
-             write(6000+bufrsat,602) bt_image(ifov,iscan,:) 
-             write(6000+bufrsat,602) bt_obs(:,iobs) 
-600          format(6(a6,2x),2(a12  ,2x))
-601          format(6(i6,2x),2(f12.5,2x))
-602          format(24(f8.3,2x))
           enddo fov_loop
        enddo scan_loop
        write(*,*) 'SSMIS_Spatial_Average: spatial averaging Done ... '
@@ -321,7 +237,7 @@ CONTAINS
 
        write(*,*) 'SSMIS_Spatial_Average: deallocating arrays... '
 !      Deallocate arrays
-       deallocate(nodeinfo,scanline_back)
+       deallocate(scanline_back)
        deallocate(scanline)
 !      deallocate(scanlinex)
        deallocate(latitude,longitude)
@@ -397,7 +313,7 @@ CONTAINS
           gmi_fov_loop: do ifov = 1, max_fov_gmi    
              iobs = scanline_back(ifov,iscan)
              if (iobs >0) then
-                node_inout(iobs) = nodeinfo(ifov,iscan)
+!               node_inout(iobs) = nodeinfo(ifov,iscan)
                 gmi_channel_loop: do ic = 1, nchanl
 !            Define grid box by channel -
 !            Ch 1-2: 1 scan direction, 1 track direction
@@ -519,7 +435,7 @@ CONTAINS
           amsr2_fov_loop: do ifov = 1, max_fov_amsr2
              iobs = scanline_back(ifov,iscan)
              if (iobs >0) then
-                node_inout(iobs) = nodeinfo(ifov,iscan)
+!               node_inout(iobs) = nodeinfo(ifov,iscan)
                 amsr2_channel_loop: do ic = 1, nchanl
 !            Define grid box by channel -
 !            Ch 1-6: 1 scan direction, 1 track direction
